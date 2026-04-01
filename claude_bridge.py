@@ -421,8 +421,12 @@ def strip_markdown(text):
     # Handle P tags
     text = re.sub(r'<P\s*/?\s*>', '\n\n', text, flags=re.IGNORECASE)
     text = re.sub(r'</P\s*>', '', text, flags=re.IGNORECASE)
-    # Remove any other HTML tags
-    text = re.sub(r'<[^>]+>', '', text)
+
+    # Remove HTML tags, but NOT C/C++ includes like <Types.h>, <stdio.h>
+    # C includes ALWAYS have a dot (filename.h)
+    # HTML tags NEVER have a dot
+    # Pattern: </?[^.>]+> matches <tag> but NOT <file.h>
+    text = re.sub(r'</?[^.>]+>', '', text)
 
     # AGGRESSIVE: Extract code blocks and remove everything else
     # Look for code blocks (```language\ncode\n```)
