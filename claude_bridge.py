@@ -402,10 +402,13 @@ def strip_markdown(text):
     import re
 
     # First, remove HTML tags that might have been added during formatting
-    text = re.sub(r'<BR>', '\n', text, flags=re.IGNORECASE)
-    text = re.sub(r'<P>', '\n\n', text, flags=re.IGNORECASE)
-    text = re.sub(r'</P>', '', text, flags=re.IGNORECASE)
-    text = re.sub(r'<[^>]+>', '', text)  # Remove any other HTML tags
+    # Handle all BR tag variants: <BR>, <br>, <BR/>, <BR />, <br />, etc.
+    text = re.sub(r'<BR\s*/?\s*>', '\n', text, flags=re.IGNORECASE)
+    # Handle P tags
+    text = re.sub(r'<P\s*/?\s*>', '\n\n', text, flags=re.IGNORECASE)
+    text = re.sub(r'</P\s*>', '', text, flags=re.IGNORECASE)
+    # Remove any other HTML tags
+    text = re.sub(r'<[^>]+>', '', text)
 
     # Remove markdown code block markers (```language ... ```)
     # Keep the code content, just remove the markers
