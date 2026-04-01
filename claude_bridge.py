@@ -415,28 +415,33 @@ def strip_markdown(text):
     """
     import re
 
-    # First, remove HTML tags that might have been added during formatting
-    # Handle all BR tag variants: <BR>, <br>, <BR/>, <BR />, <br />, etc.
-    text = re.sub(r'<BR\s*/?\s*>', '\n', text, flags=re.IGNORECASE)
-    # Handle P tags
-    text = re.sub(r'<P\s*/?\s*>', '\n\n', text, flags=re.IGNORECASE)
-    text = re.sub(r'</P\s*>', '', text, flags=re.IGNORECASE)
-
-    # Remove HTML tags, but NOT C/C++ includes like <Types.h>, <stdio.h>
-    # C includes ALWAYS have a dot (filename.h)
-    # HTML tags NEVER have a dot
-    # Pattern: </?[^.>]+> matches <tag> but NOT <file.h>
-    text = re.sub(r'</?[^.>]+>', '', text)
-
-    # AGGRESSIVE: Extract code blocks and remove everything else
-    # Look for code blocks (```language\ncode\n```)
+    # FIRST: Extract code blocks BEFORE doing any HTML tag removal
+    # This prevents HTML stripping from corrupting C operators like <, >, <=, >=
     code_block_pattern = r'```[a-zA-Z]*\n(.*?)\n```'
     code_blocks = re.findall(code_block_pattern, text, re.DOTALL)
 
     if code_blocks:
-        # If we found code blocks, return ONLY the code, nothing else
+        # If we found code blocks, extract ONLY the code
         # This removes all explanatory text like "Here's the modified code..."
-        return '\n\n'.join(code_blocks).strip()
+        extracted_code = '\n\n'.join(code_blocks)
+
+        # Only remove safe HTML tags that format_for_netscape might have added
+        # Do NOT use generic HTML removal that could corrupt C operators
+        extracted_code = re.sub(r'<BR\s*/?\s*>', '\n', extracted_code, flags=re.IGNORECASE)
+        extracted_code = re.sub(r'<P\s*/?\s*>', '\n\n', extracted_code, flags=re.IGNORECASE)
+        extracted_code = re.sub(r'</P\s*>', '', extracted_code, flags=re.IGNORECASE)
+
+        return extracted_code.strip()
+
+    # If no code blocks found, do full cleanup on non-code text
+    # Remove HTML tags that might have been added during formatting
+    text = re.sub(r'<BR\s*/?\s*>', '\n', text, flags=re.IGNORECASE)
+    text = re.sub(r'<P\s*/?\s*>', '\n\n', text, flags=re.IGNORECASE)
+    text = re.sub(r'</P\s*>', '', text, flags=re.IGNORECASE)
+
+    # For non-code text, safe to remove HTML tags (but still preserve <file.h>)
+    # Pattern: </?[^.>]+> matches <tag> but NOT <file.h>
+    text = re.sub(r'</?[^.>]+>', '', text)
 
     # If no code blocks found, clean up the text
     # Remove markdown code block markers (```language ... ```)
