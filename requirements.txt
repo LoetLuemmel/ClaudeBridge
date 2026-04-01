@@ -4,3 +4,5 @@
 # or with uv: uv pip install -r requirements.txt
 
 PyYAML>=6.0
+beautifulsoup4>=4.12.0
+Pillow>=10.0.0

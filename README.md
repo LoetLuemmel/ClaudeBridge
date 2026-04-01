@@ -1,204 +1,265 @@
-# Claude Bridge Server v1.2
+# Claude Bridge Server v1.3
 
-Ein HTTP-Server, der Claude AI fuer Classic Mac OS Systeme (MacOS 7.5 in Basilisk II) mit Netscape 3 zugaenglich macht.
+An HTTP server that makes Claude AI accessible for Classic Mac OS systems (MacOS 7.5 in Basilisk II) with Netscape 3.
 
-## Ueberblick
+## Overview
 
-Dieser Server ermoeglicht es, von einem Vintage Mac mit Netscape Navigator 3 auf die Claude API zuzugreifen. Der Server ist speziell fuer die Einschraenkungen alter Browser optimiert (HTML 3.2, ISO-8859-1 Encoding, META REFRESH fuer asynchrone Updates).
+This server enables access to the Claude API from a vintage Mac with Netscape Navigator 3. The server is specifically optimized for the limitations of old browsers (HTML 3.2, ISO-8859-1 encoding, META REFRESH for asynchronous updates).
 
-**Neu in v1.2**: Configuration-File-Support, strukturiertes Logging, Unit Tests, Security-Hardening, Graceful Shutdown
+**New in v1.3**: English UI, Web Proxy with HTTPS-to-HTTP bridging, image optimization for vintage browsers, rate limiting for Wikipedia
 
 ## Quick Start
 
 ```bash
-# 1. Dependencies installieren
-pip install pyyaml
+# 1. Install dependencies
+pip install -r requirements.txt
 
-# 2. API Key einrichten
+# 2. Set up API key
 mkdir -p ~/.config/anthropic
 echo 'sk-ant-...' > ~/.config/anthropic/api_key
 chmod 600 ~/.config/anthropic/api_key
 
-# 3. Server starten
+# 3. Start server
 python3 claude_bridge.py --shared-folder ~/Desktop/Share
 
-# 4. Browser oeffnen
+# 4. Open browser
 # http://localhost:8080/
 ```
 
-Das war's! Der Server laeuft und ist bereit fuer Netscape 3.
+That's it! The server is running and ready for Netscape 3.
 
 ## Features
 
-### Drei Hauptfunktionen:
+### Main Functions:
 
-1. **Code-Assistent** - Think C Code schreiben, analysieren und debuggen
-   - Spezialisiert auf Think C 7 unter MacOS 7.5
-   - Toolbox-API Kenntnisse
-   - Handle-basierte Speicherverwaltung
-   - Pascal-String Unterstuetzung
+1. **Code Assistant** - Write, analyze and debug Think C code
+   - Specialized for Think C 7 on MacOS 7.5
+   - Toolbox API knowledge
+   - Handle-based memory management
+   - Pascal string support
 
-2. **Resource-Generator** - Rez-Quelltext generieren
+2. **Resource Generator** - Generate Rez source code
    - MENU, DLOG, DITL, WIND, ICON, etc.
-   - Fertiger Rez-Code zum Kompilieren
+   - Ready-to-compile Rez code
 
-3. **Frage & Antwort** - Allgemeine Classic Mac Programmierung
-   - Toolbox-Fragen
-   - Debugging-Hilfe
-   - Architektur-Beratung
+3. **Ask & Answer** - General Classic Mac programming questions
+   - Toolbox questions
+   - Debugging help
+   - Architecture advice
 
-### Technische Features:
+4. **Claude Chat** - General AI assistant
+   - Chat about anything, not just programming
+   - Context-aware conversation history
+   - Plain text export for easy copying
 
-- **Background Threading**: API-Calls laufen im Hintergrund
-- **META REFRESH**: Automatische Seitenaktualisierung waehrend Claude arbeitet
-- **ISO-8859-1 Encoding**: Kompatibel mit Netscape "Western" Zeichensatz
-- **HTML 3.2**: Funktioniert mit alten Browsern
-- **Shared Folder**: Dateien zwischen Mac und Server austauschen
-- **Conversation History**: Letzte 20 Fragen/Antworten werden gespeichert
-- **Text-Export**: Einfaches Kopieren von Claude's Antworten
+5. **Web Proxy** - Browse modern HTTPS websites in Netscape 3
+   - Converts modern HTML to HTML 3.2
+   - Removes JavaScript and CSS
+   - Optimizes images for Classic Mac (GIF, 500px, 50KB, 32-64 colors)
+   - Rate limiting to prevent Wikipedia blocks
+   - Image caching (100 entries, 1 hour TTL)
 
-### Neue Features in v1.2:
+### Technical Features:
 
-- **Configuration File**: YAML-basierte Konfiguration (config.yaml)
-- **Strukturiertes Logging**: Log zu Datei und/oder Console mit konfigurierbarem Level
-- **Security Hardening**: Path-Traversal-Prevention, Job-Timeouts, Race-Condition-Fixes
-- **Graceful Shutdown**: Sauberes Herunterfahren mit Warten auf laufende Jobs
-- **Unit Tests**: 22 Tests fuer kritische Funktionen (100% Pass-Rate)
-- **Job Error Handling**: Robuste Fehlerbehandlung mit aussagekraeftigen Meldungen
+- **Background Threading**: API calls run in background
+- **META REFRESH**: Automatic page refresh while Claude works
+- **ISO-8859-1 Encoding**: Compatible with Netscape "Western" character set
+- **HTML 3.2**: Works with old browsers
+- **Shared Folder**: Exchange files between Mac and server
+- **Conversation History**: Last 20 questions/answers saved
+- **Text Export**: Easy copying of Claude's answers
+
+### New Features in v1.3:
+
+- **English UI**: All interface elements translated to English
+- **Web Proxy**: HTTPS-to-HTTP proxy for vintage browsers
+- **Image Optimization**: Automatic conversion to GIF with size limits
+- **Rate Limiting**: 2-second delay between image requests (prevents Wikipedia 429 errors)
+- **Smart Retry**: Automatic retry on rate limit errors
+- **Input Image Support**: Handles `<input type="image">` tags
+- **Image Caching**: Reduces redundant fetches
 
 ## Installation
 
-### Voraussetzungen
+### Requirements
 
-- Python 3.8 oder neuer (getestet mit 3.12)
-- PyYAML (fuer config.yaml Support)
+- Python 3.8 or newer (tested with 3.12)
+- PyYAML (for config.yaml support)
+- BeautifulSoup4 (for HTML parsing)
+- Pillow (for image optimization)
 - Anthropic API Key
-- Basilisk II Emulator mit MacOS 7.5 und Netscape 3 (optional)
+- Basilisk II emulator with MacOS 7.5 and Netscape 3 (optional)
 
-### Dependencies installieren
+### Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-oder mit uv (empfohlen):
+or with uv (recommended):
 
 ```bash
 uv pip install -r requirements.txt
 ```
 
-Manuell:
+Manual installation:
 ```bash
-pip install pyyaml
+pip install PyYAML beautifulsoup4 Pillow
 ```
 
-### API Key einrichten
+### Set Up API Key
 
-Option 1 (empfohlen):
+Option 1 (recommended):
 ```bash
 mkdir -p ~/.config/anthropic
 echo 'sk-ant-...' > ~/.config/anthropic/api_key
 chmod 600 ~/.config/anthropic/api_key
 ```
 
-Option 2: .env Datei im Projektverzeichnis erstellen
+Option 2: Create .env file in project directory
 
-Option 3: Environment Variable setzen:
+Option 3: Set environment variable:
 ```bash
 export ANTHROPIC_API_KEY='sk-ant-...'
 ```
 
-## Verwendung
+## Usage
 
-### Manueller Start
+### Manual Start
 
 ```bash
 python3 claude_bridge.py --port 8080 --host 0.0.0.0 --shared-folder ~/Desktop/Share
 ```
 
-### Mit Start-Script (macOS)
+### With Start Script (macOS)
 
 ```bash
 sudo ./start_bridge.sh
 ```
 
-Das Script:
-- Deaktiviert temporaer die Firewall
-- Startet den Server
-- Reaktiviert die Firewall beim Beenden
+The script:
+- Temporarily disables firewall
+- Starts the server
+- Re-enables firewall on exit
 
-### Parameter
+### Parameters
 
-- `--port`: Port (Standard: 8080, ueberschreibbar via config.yaml)
-- `--host`: Host-Adresse (Standard: 0.0.0.0, ueberschreibbar via config.yaml)
-- `--shared-folder`: Pfad zum Shared Folder fuer Dateienaustausch
-- `--config`: Pfad zur Config-Datei (Standard: config.yaml)
+- `--port`: Port (default: 8080, overridable via config.yaml)
+- `--host`: Host address (default: 0.0.0.0, overridable via config.yaml)
+- `--shared-folder`: Path to shared folder for file exchange
+- `--config`: Path to config file (default: config.yaml)
 
-### Zugriff
+### Access
 
-Im Browser (Netscape 3 auf Classic Mac oder modern):
+In browser (Netscape 3 on Classic Mac or modern):
 ```
 http://[SERVER-IP]:8080/
 ```
 
-## Architektur
+## Web Proxy
 
-### Server-Komponenten
+The Web Proxy allows you to browse modern HTTPS websites in Netscape Navigator 3.
 
-- **HTTP Server**: BaseHTTPRequestHandler mit Threading
-- **Job Queue**: Background-Verarbeitung von API-Calls
-- **File Management**: Lesen/Schreiben im Shared Folder
-- **Character Sanitization**: Unicode → ISO-8859-1 Konvertierung
-- **HTML Templates**: HTML 3.2 konforme Seiten
+### How It Works
+
+1. **HTML Conversion**: Modern HTML → HTML 3.2
+   - Removes `<script>`, `<style>`, CSS
+   - Converts `<div>` → `<p>`, removes `<span>`
+   - Truncates large pages to 200KB
+
+2. **Image Optimization**:
+   - Downloads HTTPS images
+   - Converts to GIF format (best Netscape 3 compatibility)
+   - Resizes to max 500px width
+   - Compresses to max 50KB
+   - Uses 32-64 color adaptive palette
+   - SVG → 1x1 transparent GIF placeholder
+
+3. **Rate Limiting**:
+   - 2-second delay between image requests to same domain
+   - Prevents Wikipedia HTTP 429 errors
+   - Automatic retry with 3-second wait on 429
+
+4. **Link Rewriting**:
+   - All links proxied through `/proxy?url=`
+   - All images proxied through `/proxyimg?url=`
+   - Handles both `<img>` and `<input type="image">` tags
+
+### Recommended Sites
+
+- Wikipedia (works well with rate limiting)
+- Hacker News (text-heavy, fast)
+- Reddit Old (simple layout)
+
+### Known Limitations
+
+- Some images may show placeholders due to rate limiting
+- JavaScript-heavy sites won't work (no JS support)
+- Maximum 200KB HTML per page
+- 2-second delay makes image-heavy pages slow (~40 seconds for 20 images)
+
+## Architecture
+
+### Server Components
+
+- **HTTP Server**: BaseHTTPRequestHandler with Threading
+- **Job Queue**: Background processing of API calls
+- **File Management**: Read/write in Shared Folder
+- **Character Sanitization**: Unicode → ISO-8859-1 conversion
+- **HTML Templates**: HTML 3.2 compliant pages
+- **Web Proxy**: HTTPS fetching + HTML/image conversion
+- **Image Cache**: LRU cache with 100 entries, 1 hour TTL
+- **Rate Limiter**: Per-domain request tracking
 
 ### System Prompts
 
-Der Server verwendet spezialisierte System-Prompts:
-- **SYSTEM_PROMPT_CODE**: Think C Programmierung
-- **SYSTEM_PROMPT_REZ**: Resource-Datei Generierung
-- **SYSTEM_PROMPT_GENERAL**: Allgemeine Mac-Entwicklung
+The server uses specialized system prompts:
+- **SYSTEM_PROMPT_CODE**: Think C programming
+- **SYSTEM_PROMPT_REZ**: Resource file generation
+- **SYSTEM_PROMPT_GENERAL**: General Mac development
+- **SYSTEM_PROMPT_CHAT**: General AI assistant
 
 ### Workflow
 
-1. Benutzer sendet Anfrage via HTML-Formular
-2. Server erstellt Background-Job
-3. "Bitte warten" Seite mit META REFRESH
-4. Claude API Call im Background
-5. Automatische Weiterleitung zum Ergebnis
-6. Ergebnis mit Speicher- und Nachfrage-Optionen
+1. User sends request via HTML form
+2. Server creates background job
+3. "Please wait" page with META REFRESH
+4. Claude API call in background
+5. Automatic redirect to result
+6. Result with save and follow-up options
 
-## Technische Details
+## Technical Details
 
 ### Character Encoding
 
-- **Input**: ISO-8859-1 vom Browser
-- **Processing**: Unicode intern
-- **Output**: ISO-8859-1 fuer Netscape
-- **Umlauts**: ä, ö, ü, ß werden korrekt behandelt
-- **Sonderzeichen**: Automatische Ersetzung (– → -, " → ")
+- **Input**: ISO-8859-1 from browser
+- **Processing**: Unicode internally
+- **Output**: ISO-8859-1 for Netscape
+- **Umlauts**: ä, ö, ü, ß handled correctly
+- **Special chars**: Automatic replacement (– → -, " → ")
 
-### Browser-Kompatibilitaet
+### Browser Compatibility
 
-- HTML 3.2 konform (keine CSS, kein JavaScript)
-- TABLE-basiertes Layout
-- META REFRESH fuer Updates
-- TEXTAREA statt contenteditable
-- Einfache Forms ohne AJAX
+- HTML 3.2 compliant (no CSS, no JavaScript)
+- TABLE-based layout
+- META REFRESH for updates
+- TEXTAREA instead of contenteditable
+- Simple forms without AJAX
 
-### API-Nutzung
+### API Usage
 
 - Model: claude-sonnet-4-20250514
 - Max Tokens: 4096
-- Timeout: 120 Sekunden
-- Fehlerbehandlung mit aussagekraeftigen Meldungen
+- Timeout: 120 seconds
+- Error handling with meaningful messages
 
-## Konfiguration
+## Configuration
 
 ### Configuration File (config.yaml)
 
-**Neu in v1.2**: Alle Einstellungen koennen via config.yaml konfiguriert werden.
+All settings can be configured via config.yaml.
 
-Beispiel `config.yaml`:
+Example `config.yaml`:
 
 ```yaml
 # Server Settings
@@ -233,89 +294,79 @@ logging:
   console: true  # log to console
 ```
 
-**Hinweis**: config.yaml ist optional. Ohne Config-File werden Default-Werte verwendet.
+**Note**: config.yaml is optional. Without config file, default values are used.
 
-### Command-Line-Parameter ueberschreiben Config
+### Command-Line Parameters Override Config
 
-Command-Line-Parameter haben Vorrang vor config.yaml:
+Command-line parameters take precedence over config.yaml:
 
 ```bash
 python3 claude_bridge.py --port 9090 --config my_config.yaml
-# Port 9090 wird verwendet, auch wenn config.yaml etwas anderes sagt
+# Port 9090 will be used, even if config.yaml says otherwise
 ```
 
 ### Logging
 
-**Neu in v1.2**: Strukturiertes Logging mit konfigurierbarem Level.
+Structured logging with configurable level.
 
-Log-Levels:
-- `DEBUG`: Alle Details inkl. Path-Validierung
-- `INFO`: Standard-Betrieb, Job-Lifecycle (empfohlen)
-- `WARNING`: Warnungen (z.B. API Key fehlt, Path-Traversal-Versuche)
-- `ERROR`: Fehler bei Job-Ausfuehrung
+Log levels:
+- `DEBUG`: All details including path validation, rate limiting
+- `INFO`: Standard operation, job lifecycle (recommended)
+- `WARNING`: Warnings (e.g. API key missing, rate limits hit)
+- `ERROR`: Errors during job execution
 
-Beispiel Log-Ausgabe:
+Example log output:
 ```
-2025-01-15 14:32:10 [INFO] API Key: loaded from /Users/.../.config/anthropic/api_key
-2025-01-15 14:32:10 [INFO] Job 1 created: Code - Schreibe ein Hello World...
-2025-01-15 14:32:15 [INFO] Job 1 completed in 4.8s
-2025-01-15 14:32:20 [WARNING] Path traversal attempt blocked: ../../../etc/passwd
-```
-
-### Start-Script (start_bridge.sh)
-
-```bash
-PYTHON="/Library/Frameworks/Python.framework/Versions/3.12/bin/python3"
-SHARED="/Users/pitforster/Desktop/Share"
-HOST="192.168.3.154"
-PORT=8080
+2026-04-01 18:08:43 [WARNING] Rate limited (429) for https://upload.wikimedia.org/..., waiting 3s and retrying...
+2026-04-01 18:08:47 [INFO] Retry successful after 429: https://upload.wikimedia.org/...
+2026-04-01 18:08:47 [INFO] GET /proxyimg?url=https://upload.wikimedia.org/... HTTP/1.0
 ```
 
 ## Security
 
-### Security-Verbesserungen in v1.2
+### Security Improvements in v1.2
 
-Der Server wurde mit mehreren Security-Features gehaertet:
+The server was hardened with several security features:
 
 1. **Path Traversal Prevention**
-   - `validate_safe_path()` Funktion validiert alle Dateipfade
-   - Verhindert `../` Attacken
-   - Alle File-Operationen geschuetzt
+   - `validate_safe_path()` function validates all file paths
+   - Prevents `../` attacks
+   - All file operations protected
 
 2. **Filename Sanitization**
-   - Whitelist fuer Dateinamen: nur `a-zA-Z0-9._-`
-   - Verhindert versteckte Dateien (`.`)
-   - Ersetzt unsichere Zeichen
+   - Whitelist for filenames: only `a-zA-Z0-9._-`
+   - Prevents hidden files (`.`)
+   - Replaces unsafe characters
 
 3. **Job Timeout**
-   - Automatischer Timeout nach 180 Sekunden (konfigurierbar)
-   - Verhindert haengende Jobs
-   - Benutzerfreundliche Timeout-Meldung
+   - Automatic timeout after 180 seconds (configurable)
+   - Prevents hanging jobs
+   - User-friendly timeout message
 
 4. **Race Condition Fixes**
-   - Thread-Locks bei allen Job-Operationen
-   - Double-Check vor Delete
-   - Keine Crashes bei concurrent Access
+   - Thread locks on all job operations
+   - Double-check before delete
+   - No crashes on concurrent access
 
 5. **Error Handling**
-   - try/except um alle kritischen Operationen
-   - Jobs werden als "error" markiert statt ewig "working"
-   - Aussagekraeftige Fehlermeldungen
+   - try/except around all critical operations
+   - Jobs marked as "error" instead of forever "working"
+   - Meaningful error messages
 
-### Security-Limitierungen
+### Security Limitations
 
-**Wichtig**: Dieser Server ist NICHT fuer Production gedacht:
-- ❌ Keine Authentifizierung
-- ❌ Kein HTTPS (nur HTTP)
-- ❌ Kein Rate-Limiting
-- ❌ Direkter Dateisystem-Zugriff via Shared Folder
-- ❌ API Key im Environment/Config
+**Important**: This server is NOT intended for production:
+- ❌ No authentication
+- ❌ No HTTPS (HTTP only)
+- ❌ No rate limiting (except Web Proxy)
+- ❌ Direct filesystem access via Shared Folder
+- ❌ API key in environment/config
 
-**Nutzung**: Nur in vertrauenswuerdigen Netzwerken (lokales Netz / Emulator).
+**Usage**: Only in trusted networks (local network / emulator).
 
 ## Testing
 
-### Unit Tests ausfuehren
+### Run Unit Tests
 
 ```bash
 python3 test_claude_bridge.py
@@ -328,104 +379,96 @@ python3 test_claude_bridge.py
 - ✅ Config Loading (2 Tests)
 - ✅ File Management (4 Tests)
 
-Alle Tests haben eine 100% Pass-Rate.
+All tests have 100% pass rate.
 
-### Test-Kategorien
+## Development
 
-1. **TestPathValidation**: Path-Traversal-Prevention
-   - Valid paths accepted
-   - `../` attacks blocked
-   - Absolute paths blocked
-   - Sneaky attempts blocked
-
-2. **TestSanitization**: ISO-8859-1 Character-Handling
-   - ASCII passthrough
-   - German umlauts preserved
-   - Unicode quotes/dashes replaced
-   - Emojis removed
-
-3. **TestFilenameValidation**: Filename-Sanitization
-   - Safe filenames pass
-   - Dangerous chars removed
-   - Spaces replaced
-
-4. **TestConfigLoading**: Config-Struktur validiert
-
-5. **TestFileManagement**: File-Operationen getestet
-
-## Entwicklung
-
-### Dateistruktur
+### File Structure
 
 ```
 AppleBridge/
-├── claude_bridge.py       # Haupt-Server (730 Zeilen)
-├── test_claude_bridge.py  # Unit Tests (232 Zeilen)
-├── config.yaml            # Configuration File
-├── requirements.txt       # Python Dependencies
-├── start_bridge.sh        # Start-Script (macOS)
-├── CLAUDE.md              # Entwicklungs-Guidelines
-├── README.md              # Diese Datei (425 Zeilen)
-└── .gitignore             # Git-Ignore-Regeln
+├── claude_bridge.py       # Main server (~1600 lines)
+├── test_claude_bridge.py  # Unit tests (232 lines)
+├── config.yaml            # Configuration file
+├── requirements.txt       # Python dependencies
+├── start_bridge.sh        # Start script (macOS)
+├── CLAUDE.md              # Development guidelines
+├── README.md              # This file
+└── .gitignore             # Git ignore rules
 ```
 
-### Entwicklungs-Guidelines
+### Development Guidelines
 
-Siehe `CLAUDE.md` fuer wichtige Hinweise:
-- ⚠️ **KRITISCH**: ISO-8859-1 Encoding NICHT aendern!
-- Think C Compiler-Einschraenkungen
-- Netscape 3 HTML 3.2 Kompatibilitaet
-- System Prompt Guidelines
+See `CLAUDE.md` for important notes:
+- ⚠️ **CRITICAL**: DO NOT change ISO-8859-1 encoding!
+- Think C compiler limitations
+- Netscape 3 HTML 3.2 compatibility
+- System prompt guidelines
 
-### Erweiterungen
+### Extensions
 
-Moegliche Erweiterungen:
-- Weitere Programmiersprachen (Pascal, Assembly)
-- Authentifizierung (Basic Auth, Token)
-- HTTPS Support
-- Session-Management
-- Multi-User Support
-- Export in verschiedene Formate
+Possible extensions:
+- More programming languages (Pascal, Assembly)
+- Authentication (Basic Auth, Token)
+- HTTPS support
+- Session management
+- Multi-user support
+- Export in various formats
+- Better proxy caching strategies
 
-## Lizenz
+## License
 
-Keine Lizenz angegeben.
+No license specified.
 
-## Autor
+## Author
 
 Peter Forster
 
 ## Version
 
-**Aktuelle Version**: 1.2 (Januar 2025)
+**Current Version**: 1.3 (April 2026)
 
 ### Changelog
 
+#### v1.3 (2026-04-01)
+- ✨ **Feature**: English UI (all German text translated)
+- ✨ **Feature**: Web Proxy with HTTPS-to-HTTP bridging
+- ✨ **Feature**: Image optimization for vintage browsers (GIF conversion)
+- ✨ **Feature**: Rate limiting (2s delay between image requests)
+- ✨ **Feature**: Smart retry on HTTP 429 errors
+- ✨ **Feature**: Image caching (100 entries, 1 hour TTL)
+- ✨ **Feature**: Claude Chat with conversation context
+- 🐛 **Fix**: `<input type="image">` URL rewriting
+- 🐛 **Fix**: Text wrapping in Netscape 3 (72 char line breaks)
+- 📝 **Docs**: README translated to English
+
 #### v1.2 (2025-01-15)
-- ✨ **Feature**: Configuration File Support (config.yaml)
-- ✨ **Feature**: Strukturiertes Logging mit konfigurierbarem Level
-- ✨ **Feature**: Graceful Shutdown (wartet auf laufende Jobs)
-- ✨ **Feature**: Unit Tests (22 Tests, 100% Pass-Rate)
-- 🔒 **Security**: Path Traversal Prevention
-- 🔒 **Security**: Filename Sanitization mit Whitelist
-- 🔒 **Security**: Job Timeout (180 Sekunden)
-- 🔒 **Security**: Race Condition Fixes mit Thread-Locks
-- 🐛 **Fix**: Job Error Handling (Jobs haengen nicht mehr)
-- 📝 **Docs**: CLAUDE.md mit Entwicklungs-Guidelines
-- 📝 **Docs**: README komplett ueberarbeitet
+- ✨ **Feature**: Configuration file support (config.yaml)
+- ✨ **Feature**: Structured logging with configurable level
+- ✨ **Feature**: Graceful shutdown (waits for running jobs)
+- ✨ **Feature**: Unit tests (22 tests, 100% pass rate)
+- 🔒 **Security**: Path traversal prevention
+- 🔒 **Security**: Filename sanitization with whitelist
+- 🔒 **Security**: Job timeout (180 seconds)
+- 🔒 **Security**: Race condition fixes with thread locks
+- 🐛 **Fix**: Job error handling (jobs don't hang anymore)
+- 📝 **Docs**: CLAUDE.md with development guidelines
+- 📝 **Docs**: README completely revised
 
 #### v1.1 (2025-01)
-- Initial release mit Background-Threading
-- META REFRESH fuer asynchrone Updates
-- Code-Assistent, Resource-Generator, Q&A
-- Shared Folder Integration
-- ISO-8859-1 Encoding Support
+- Initial release with background threading
+- META REFRESH for asynchronous updates
+- Code Assistant, Resource Generator, Q&A
+- Shared Folder integration
+- ISO-8859-1 encoding support
 
-## Hinweise
+## Notes
 
-- Der Server ist nicht fuer den produktiven Einsatz gedacht
-- Keine Authentifizierung implementiert (nur lokales Netz!)
-- API Key sollte sicher aufbewahrt werden
-- Firewall-Deaktivierung nur temporaer beim Start
-- Logs koennen sensitive Informationen enthalten (in .gitignore)
-- Tests vor jedem Deployment ausfuehren empfohlen
+- Server is not intended for production use
+- No authentication implemented (local network only!)
+- API key should be stored securely
+- Firewall deactivation only temporary during start
+- Logs may contain sensitive information (in .gitignore)
+- Running tests before each deployment recommended
+- Web Proxy works best with text-heavy sites
+- Wikipedia requires 2s image delay to avoid rate limits
