@@ -1,0 +1,33 @@
+# Claude Bridge Server Configuration
+# ===================================
+
+# Server Settings
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+# Claude API Settings
+claude:
+  model: "claude-sonnet-4-20250514"
+  max_tokens: 4096
+  timeout: 120  # seconds for API call
+
+# Job Management
+jobs:
+  timeout: 180  # seconds (3 minutes)
+  max_history: 10  # max jobs to keep in memory
+  refresh_interval: 3  # seconds for META REFRESH
+
+# File Management
+files:
+  shared_folder: null  # path to shared folder (can be overridden by --shared-folder)
+
+# History
+history:
+  max_entries: 20  # max conversation history entries
+
+# Logging
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  file: "claude_bridge.log"  # log file path (null = no file logging)
+  console: true  # log to console
