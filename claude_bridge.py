@@ -791,10 +791,12 @@ def simplify_html_for_netscape(html_content, base_url):
     if input_img_count > 0:
         logging.debug(f"Rewrote {input_img_count} input image URLs")
 
-    # Remove form actions (forms won't work through proxy, but keep them for display)
+    # Remove forms entirely (they won't work through proxy - no POST support)
     for form in soup.find_all('form'):
-        if form.has_attr('action'):
-            del form['action']
+        # Replace form with a message
+        message = soup.new_tag('p')
+        message.string = '[Form removed - forms don\'t work through proxy]'
+        form.replace_with(message)
 
     # Get body content only (to avoid duplicate head tags)
     body = soup.find('body')
