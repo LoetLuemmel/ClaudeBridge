@@ -230,23 +230,7 @@ SYSTEM_PROMPT_CODE = (
     "Write ONLY code that compiles in Think C 7.0. "
     "Use proper Classic Mac Toolbox patterns. "
     "Add clear comments explaining non-obvious code. "
-    "Keep explanations brief - user reads in Netscape 3.\n\n"
-
-    "CRITICAL RULE - When user provides existing code:\n"
-    "NEVER REPEAT THE ENTIRE CODE BACK!\n"
-    "ONLY show the NEW LINES that need to be ADDED or CHANGED.\n\n"
-
-    "Example - User says 'add text display to this function':\n"
-    "WRONG: [shows entire function with modification]\n"
-    "RIGHT: 'Add these 3 lines at the end of CycleThruStars():\n"
-    "        MoveTo(100, 100);\n"
-    "        DrawString(\"\\pTest\");\n"
-    "        That's it!'\n\n"
-
-    "Only show complete code if:\n"
-    "- User explicitly asks for 'full code' or 'complete listing'\n"
-    "- It's a brand new program (no existing code provided)\n"
-    "- Otherwise: show ONLY the delta (what to add/change)")
+    "Keep explanations brief - user reads in Netscape 3.")
 
 SYSTEM_PROMPT_REZ = (
     "You are an expert in Classic Macintosh Resource files in Rez format. "
