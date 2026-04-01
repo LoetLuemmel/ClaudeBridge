@@ -136,17 +136,13 @@ def create_job(mode, prompt, system_prompt, is_chat=False):
             api_key = os.environ.get("ANTHROPIC_API_KEY", "")
             logging.debug(f"Job {job_id}: Calling Claude API...")
 
-            # Add context from history for chat and code
+            # Add context from history for chat only
+            # Code mode: user provides code directly, no need for conversation context
             actual_prompt = prompt
             if is_chat:
                 context = get_chat_context()
                 if context:
                     actual_prompt = context + f"\nNew message:\n{prompt}"
-            elif mode == "Code":
-                # Add previous code context for Code Assistant
-                context = get_code_context()
-                if context:
-                    actual_prompt = context + f"\nCurrent request:\n{prompt}"
 
             answer = call_claude(api_key, actual_prompt, system_prompt)
             with job_lock:
