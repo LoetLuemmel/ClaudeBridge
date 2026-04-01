@@ -25,6 +25,7 @@ CLAUDE_MODEL = "claude-sonnet-4-20250514"
 MAX_TOKENS = 4096
 SHARED_FOLDER = None
 REFRESH_SECONDS = 3
+JOB_TIMEOUT_SECONDS = 180  # 3 minutes
 
 # --- Job Queue ---
 jobs = {}
@@ -41,14 +42,25 @@ def create_job(mode, prompt, system_prompt):
         "mode": mode,
         "prompt": prompt[:200],
         "answer": None,
-        "started": time.time()
+        "started": time.time(),
+        "error": None
     }
     def run():
-        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
-        answer = call_claude(api_key, prompt, system_prompt)
-        jobs[job_id]["answer"] = answer
-        jobs[job_id]["status"] = "done"
-        add_to_history(mode, jobs[job_id]["prompt"], answer)
+        try:
+            api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+            answer = call_claude(api_key, prompt, system_prompt)
+            with job_lock:
+                if job_id in jobs:  # Job might have been cleaned up
+                    jobs[job_id]["answer"] = answer
+                    jobs[job_id]["status"] = "done"
+                    add_to_history(mode, jobs[job_id]["prompt"], answer)
+        except Exception as e:
+            # Ensure job is marked as failed even if something goes wrong
+            with job_lock:
+                if job_id in jobs:
+                    jobs[job_id]["answer"] = f"[Interner Fehler]: {str(e)}"
+                    jobs[job_id]["status"] = "error"
+                    jobs[job_id]["error"] = str(e)
     t = threading.Thread(target=run, daemon=True)
     t.start()
     return job_id
@@ -120,28 +132,43 @@ def add_to_history(mode, question, answer):
         conversation_history.pop(0)
 
 # --- File Management ---
+def validate_safe_path(base_path, user_path):
+    """Validate that user_path stays within base_path (prevent path traversal).
+    Returns resolved path if safe, None otherwise."""
+    try:
+        base = Path(base_path).resolve()
+        target = (base / user_path).resolve()
+        # Check if target is within base (prevents ../ attacks)
+        target.relative_to(base)
+        return target
+    except (ValueError, RuntimeError):
+        return None
+
 def list_shared_files(subfolder=""):
     if not SHARED_FOLDER:
         return []
-    target = Path(SHARED_FOLDER) / subfolder
-    if not target.exists():
+    target = validate_safe_path(SHARED_FOLDER, subfolder)
+    if not target or not target.exists():
         return []
     files = []
-    for f in sorted(target.iterdir()):
-        if f.name.startswith("."):
-            continue
-        files.append({
-            "name": f.name,
-            "is_dir": f.is_dir(),
-            "size": f.stat().st_size if f.is_file() else 0
-        })
+    try:
+        for f in sorted(target.iterdir()):
+            if f.name.startswith("."):
+                continue
+            files.append({
+                "name": f.name,
+                "is_dir": f.is_dir(),
+                "size": f.stat().st_size if f.is_file() else 0
+            })
+    except (PermissionError, OSError):
+        pass
     return files
 
 def read_shared_file(filename):
     if not SHARED_FOLDER:
         return None
-    filepath = Path(SHARED_FOLDER) / filename
-    if not filepath.exists() or not filepath.is_file():
+    filepath = validate_safe_path(SHARED_FOLDER, filename)
+    if not filepath or not filepath.exists() or not filepath.is_file():
         return None
     try:
         return filepath.read_text(encoding="mac_roman", errors="replace")
@@ -154,7 +181,9 @@ def read_shared_file(filename):
 def save_shared_file(filename, content):
     if not SHARED_FOLDER:
         return False
-    filepath = Path(SHARED_FOLDER) / filename
+    filepath = validate_safe_path(SHARED_FOLDER, filename)
+    if not filepath:
+        return False
     try:
         filepath.write_text(content, encoding="utf-8")
         return True
@@ -501,20 +530,33 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 "<P>Job nicht gefunden. <A HREF='/'>Zurueck</A></P>"))
             return
         job = jobs[job_id]
+
+        # Check for timeout
         if job["status"] == "working":
-            self.send_html(page_waiting(job_id, job["mode"]))
-        else:
-            mode = job["mode"]
-            if mode == "Code":
-                self.send_html(page_code_result(job["prompt"], job["answer"], job_id))
-            elif mode == "Rez":
-                self.send_html(page_rez_result(job["prompt"], job["answer"], job_id))
+            elapsed = time.time() - job["started"]
+            if elapsed > JOB_TIMEOUT_SECONDS:
+                with job_lock:
+                    jobs[job_id]["status"] = "timeout"
+                    jobs[job_id]["answer"] = f"[Timeout]: Die Anfrage hat mehr als {JOB_TIMEOUT_SECONDS} Sekunden gedauert und wurde abgebrochen."
             else:
-                self.send_html(page_ask_result(job["prompt"], job["answer"], job_id))
-            # Cleanup old jobs
+                self.send_html(page_waiting(job_id, job["mode"]))
+                return
+
+        # Show result (done, error, or timeout)
+        mode = job["mode"]
+        if mode == "Code":
+            self.send_html(page_code_result(job["prompt"], job["answer"], job_id))
+        elif mode == "Rez":
+            self.send_html(page_rez_result(job["prompt"], job["answer"], job_id))
+        else:
+            self.send_html(page_ask_result(job["prompt"], job["answer"], job_id))
+
+        # Cleanup old jobs (with lock to prevent race condition)
+        with job_lock:
             if len(jobs) > 10:
                 for k in sorted(jobs.keys(), key=int)[:-10]:
-                    del jobs[k]
+                    if k in jobs:  # Double-check before deleting
+                        del jobs[k]
 
     def handle_text(self, job_id):
         """Serve answer as plain text for easy Cmd+A, Cmd+C."""
@@ -558,7 +600,12 @@ class BridgeHandler(BaseHTTPRequestHandler):
         elif path == "/save":
             filename = params.get("filename", ["output.txt"])[0]
             content = params.get("content", [""])[0]
-            filename = filename.replace("/", "_").replace("\\", "_")
+            # Sanitize filename: only allow alphanumeric, dots, dashes, underscores
+            import re
+            filename = re.sub(r'[^a-zA-Z0-9._-]', '_', filename)
+            # Prevent hidden files and ensure non-empty
+            if not filename or filename.startswith('.'):
+                filename = "output.txt"
             self.send_html(page_save_result(filename, save_shared_file(filename, content)))
 
         else:
