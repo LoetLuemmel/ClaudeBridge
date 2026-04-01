@@ -1544,13 +1544,20 @@ class BridgeHandler(BaseHTTPRequestHandler):
             prompt = params.get("prompt", [""])[0]
             code = params.get("code", [""])[0]
             if code:
-                # Wrap code in markers to prevent Claude from repeating it
+                # Ask Claude for both: brief explanation AND full modified code
                 full = (f"{prompt}\n\n"
-                       f"=== REFERENCE CODE (DO NOT REPEAT THIS IN YOUR RESPONSE) ===\n"
+                       f"=== REFERENCE CODE ===\n"
                        f"{code}\n"
                        f"=== END REFERENCE CODE ===\n\n"
-                       f"IMPORTANT: Show ONLY the new/changed lines. "
-                       f"Do NOT repeat the code above!")
+                       f"Provide your response in TWO parts:\n\n"
+                       f"1. BRIEF EXPLANATION: Explain ONLY what changed (don't repeat the entire code)\n\n"
+                       f"2. FULL CODE: Then provide the complete modified code in a code block "
+                       f"marked as ```c ... ``` so the user can copy the entire working program.\n\n"
+                       f"Format:\n"
+                       f"Brief explanation here...\n\n"
+                       f"```c\n"
+                       f"[complete modified code]\n"
+                       f"```")
             else:
                 full = prompt
             job_id = create_job("Code", full, SYSTEM_PROMPT_CODE)
