@@ -86,7 +86,7 @@ Der Code-Assistent ist spezialisiert auf **Think C 7** unter MacOS 7.5:
 ### API-Konfiguration
 
 ```python
-CLAUDE_MODEL = "claude-sonnet-4-20250514"
+CLAUDE_MODEL = "claude-opus-4-5-20251101"  # Using Opus for better Think C 7.0 code generation
 MAX_TOKENS = 4096
 REFRESH_SECONDS = 3  # Wichtig für Netscape - nicht zu kurz!
 ```
