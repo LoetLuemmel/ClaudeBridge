@@ -484,10 +484,11 @@ def format_for_netscape(text):
                 code_lines.append(line)
             result.append(f'<PRE>{html.escape("\n".join(code_lines))}</PRE>')
         else:
-            # For normal text, replace newlines with <BR> for preserved formatting
-            # but allow browser to wrap long lines
+            # For normal text, escape FIRST, then add <BR> tags
+            # This prevents the <BR> tags from being escaped
+            para = html.escape(para)
             para = para.replace('\n', '<BR>\n')
-            result.append(f'<P>{html.escape(para)}</P>')
+            result.append(f'<P>{para}</P>')
 
     return '\n'.join(result)
 
