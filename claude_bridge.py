@@ -385,17 +385,13 @@ def sanitize(text):
     return ''.join(result)
 
 def strip_markdown(text):
-    """Strip ALL markdown and HTML formatting from text for plain text export.
+    """Strip ALL markdown, HTML, and explanatory text for plain text export.
 
-    Removes:
-    - HTML tags (like <BR>, <P>, etc.)
-    - Code block markers (```language and ```)
-    - Inline code backticks
-    - Bold/italic markers (**text**, *text*, __text__, _text_)
-    - Headings (##, ###, etc.)
-    - Markdown lists (-, *, 1., etc.)
-    - Links ([text](url))
-    - And more...
+    Aggressively extracts ONLY code/technical content by:
+    - Removing explanatory sentences before code blocks
+    - Extracting just the code from between ``` markers
+    - Removing all markdown formatting
+    - Removing HTML tags
 
     Returns clean plain text suitable for copying to clipboard.
     """
@@ -410,8 +406,18 @@ def strip_markdown(text):
     # Remove any other HTML tags
     text = re.sub(r'<[^>]+>', '', text)
 
+    # AGGRESSIVE: Extract code blocks and remove everything else
+    # Look for code blocks (```language\ncode\n```)
+    code_block_pattern = r'```[a-zA-Z]*\n(.*?)\n```'
+    code_blocks = re.findall(code_block_pattern, text, re.DOTALL)
+
+    if code_blocks:
+        # If we found code blocks, return ONLY the code, nothing else
+        # This removes all explanatory text like "Here's the modified code..."
+        return '\n\n'.join(code_blocks).strip()
+
+    # If no code blocks found, clean up the text
     # Remove markdown code block markers (```language ... ```)
-    # Keep the code content, just remove the markers
     text = re.sub(r'```[a-zA-Z]*\n?', '', text)
 
     # Remove inline code backticks (`code`)
