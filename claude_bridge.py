@@ -384,6 +384,65 @@ def sanitize(text):
             result.append('?')
     return ''.join(result)
 
+def strip_markdown(text):
+    """Strip ALL markdown and HTML formatting from text for plain text export.
+
+    Removes:
+    - HTML tags (like <BR>, <P>, etc.)
+    - Code block markers (```language and ```)
+    - Inline code backticks
+    - Bold/italic markers (**text**, *text*, __text__, _text_)
+    - Headings (##, ###, etc.)
+    - Markdown lists (-, *, 1., etc.)
+    - Links ([text](url))
+    - And more...
+
+    Returns clean plain text suitable for copying to clipboard.
+    """
+    import re
+
+    # First, remove HTML tags that might have been added during formatting
+    text = re.sub(r'<BR>', '\n', text, flags=re.IGNORECASE)
+    text = re.sub(r'<P>', '\n\n', text, flags=re.IGNORECASE)
+    text = re.sub(r'</P>', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'<[^>]+>', '', text)  # Remove any other HTML tags
+
+    # Remove markdown code block markers (```language ... ```)
+    # Keep the code content, just remove the markers
+    text = re.sub(r'```[a-zA-Z]*\n?', '', text)
+
+    # Remove inline code backticks (`code`)
+    text = re.sub(r'`([^`]+)`', r'\1', text)
+
+    # Remove bold/italic markers
+    text = re.sub(r'\*\*\*([^*]+)\*\*\*', r'\1', text)  # ***text***
+    text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)      # **text**
+    text = re.sub(r'\*([^*]+)\*', r'\1', text)          # *text*
+    text = re.sub(r'___([^_]+)___', r'\1', text)        # ___text___
+    text = re.sub(r'__([^_]+)__', r'\1', text)          # __text__
+    text = re.sub(r'_([^_]+)_', r'\1', text)            # _text_
+
+    # Remove headings (##, ###, etc.)
+    text = re.sub(r'^#{1,6}\s+', '', text, flags=re.MULTILINE)
+
+    # Remove markdown links [text](url) - keep just the text
+    text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
+
+    # Remove horizontal rules (---, ***, ___)
+    text = re.sub(r'^(\*{3,}|-{3,}|_{3,})$', '', text, flags=re.MULTILINE)
+
+    # Remove blockquote markers (>)
+    text = re.sub(r'^>\s+', '', text, flags=re.MULTILINE)
+
+    # Remove list markers (-, *, +, 1., 2., etc.)
+    text = re.sub(r'^[\s]*[-*+]\s+', '', text, flags=re.MULTILINE)
+    text = re.sub(r'^[\s]*\d+\.\s+', '', text, flags=re.MULTILINE)
+
+    # Clean up multiple blank lines to max 2
+    text = re.sub(r'\n{3,}', '\n\n', text)
+
+    return text.strip()
+
 def format_for_netscape(text):
     """Format text for Netscape 3 with proper line breaks.
 
@@ -1298,9 +1357,12 @@ class BridgeHandler(BaseHTTPRequestHandler):
     def handle_text(self, job_id):
         """Serve answer as plain text for easy Cmd+A, Cmd+C."""
         if job_id not in jobs or jobs[job_id]["status"] != "done":
-            self.send_text("Job nicht gefunden oder noch nicht fertig.")
+            self.send_text("Job not found or not ready yet.")
             return
-        self.send_text(sanitize(jobs[job_id]["answer"]))
+        # Strip markdown formatting before sanitizing
+        answer = jobs[job_id]["answer"]
+        answer = strip_markdown(answer)
+        self.send_text(sanitize(answer))
 
     def handle_proxy(self, url):
         """Handle web proxy requests."""
