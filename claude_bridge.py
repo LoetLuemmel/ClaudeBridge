@@ -123,7 +123,7 @@ def create_job(mode, prompt, system_prompt, is_chat=False):
     jobs[job_id] = {
         "status": "working",
         "mode": mode,
-        "prompt": prompt[:200],
+        "prompt": prompt,  # Store full prompt for context
         "answer": None,
         "started": time.time(),
         "error": None,
@@ -136,12 +136,17 @@ def create_job(mode, prompt, system_prompt, is_chat=False):
             api_key = os.environ.get("ANTHROPIC_API_KEY", "")
             logging.debug(f"Job {job_id}: Calling Claude API...")
 
-            # For chat, add context from history
+            # Add context from history for chat and code
             actual_prompt = prompt
             if is_chat:
                 context = get_chat_context()
                 if context:
                     actual_prompt = context + f"\nNew message:\n{prompt}"
+            elif mode == "Code":
+                # Add previous code context for Code Assistant
+                context = get_code_context()
+                if context:
+                    actual_prompt = context + f"\nCurrent request:\n{prompt}"
 
             answer = call_claude(api_key, actual_prompt, system_prompt)
             with job_lock:
@@ -255,11 +260,27 @@ def add_to_history(mode, question, answer):
     conversation_history.append({
         "time": time.strftime("%H:%M:%S"),
         "mode": mode,
-        "question": question[:200],
-        "answer": answer[:500]
+        "question": question,  # Store full question (not truncated)
+        "answer": answer       # Store full answer (not truncated)
     })
     if len(conversation_history) > MAX_HISTORY:
         conversation_history.pop(0)
+
+def get_code_context():
+    """Get recent Code Assistant history as context for Claude."""
+    if not conversation_history:
+        return ""
+
+    # Filter for Code mode only, get last 2 exchanges
+    code_history = [entry for entry in conversation_history if entry['mode'] == 'Code']
+    if not code_history:
+        return ""
+
+    context = "Previous code conversation (for reference):\n\n"
+    for entry in code_history[-2:]:  # Last 2 code exchanges for context
+        context += f"User request: {entry['question'][:300]}\n"
+        context += f"Your previous code: {entry['answer'][:800]}\n\n"
+    return context
 
 # --- Chat History ---
 chat_history = []
