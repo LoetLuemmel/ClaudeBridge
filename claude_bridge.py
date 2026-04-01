@@ -1543,7 +1543,16 @@ class BridgeHandler(BaseHTTPRequestHandler):
         if path == "/code":
             prompt = params.get("prompt", [""])[0]
             code = params.get("code", [""])[0]
-            full = prompt + (f"\n\nHere is the code:\n\n{code}" if code else "")
+            if code:
+                # Wrap code in markers to prevent Claude from repeating it
+                full = (f"{prompt}\n\n"
+                       f"=== REFERENCE CODE (DO NOT REPEAT THIS IN YOUR RESPONSE) ===\n"
+                       f"{code}\n"
+                       f"=== END REFERENCE CODE ===\n\n"
+                       f"IMPORTANT: Show ONLY the new/changed lines. "
+                       f"Do NOT repeat the code above!")
+            else:
+                full = prompt
             job_id = create_job("Code", full, SYSTEM_PROMPT_CODE)
             self.send_html(page_waiting(job_id, "Code"))
 
