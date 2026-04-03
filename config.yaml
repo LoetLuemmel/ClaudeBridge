@@ -20,7 +20,7 @@ jobs:
 
 # File Management
 files:
-  shared_folder: null  # path to shared folder (can be overridden by --shared-folder)
+  shared_folder: "/Users/pitforster/Desktop/Share"  # path to shared folder (can be overridden by --shared-folder)
 
 # History
 history:
