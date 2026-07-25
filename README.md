@@ -19,8 +19,12 @@ Netscape 3 (System 7.6.1)  ──HTTP/1.0──▶  ClaudeBridge  ──HTTPS─
 ## Quick start
 
 ```bash
-git clone https://github.com/LoetLuemmel/ClaudeBridge.git
-cd ClaudeBridge
+# with git:
+git clone https://github.com/LoetLuemmel/ClaudeBridge.git && cd ClaudeBridge
+
+# without git — macOS does not ship it by default:
+curl -L -o cb.zip https://github.com/LoetLuemmel/ClaudeBridge/archive/refs/heads/main.zip
+unzip -q cb.zip && cd ClaudeBridge-main
 
 python3 -m pip install -r requirements.txt   # or: uv pip install -r requirements.txt
 
@@ -35,10 +39,14 @@ Then, in Netscape on the emulated Mac: **`http://10.0.2.2:8080/`**
 
 On the host itself: `http://127.0.0.1:8080/`
 
-> **Every command runs inside the checkout** — `git pull`, `start_bridge.sh`,
+> **Every command runs inside that directory** — `start_bridge.sh`,
 > `netmode.py`, the tests. A new terminal window starts in your home directory
-> instead, and `git pull` then answers `fatal: not a git repository` although
-> the checkout is perfectly fine. `pwd` settles it.
+> instead. `pwd` settles it.
+>
+> **Updating:** with a checkout, `git pull`. From a ZIP there is no repository,
+> so `git pull` answers `fatal: not a git repository` — download the archive
+> again instead. Either way your API key is untouched: it lives in
+> `~/.config/anthropic/`, not in this directory.
 >
 > Naming the virtual environment `.venv` inside the checkout avoids a confusing
 > case: if it carries the same name as the directory, the prompt shows that word
