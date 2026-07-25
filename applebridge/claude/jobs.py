@@ -12,7 +12,7 @@ import logging
 import os
 
 from applebridge.claude.api import call_claude
-from applebridge.claude.history import add_to_history, add_to_chat_history, get_chat_context
+from applebridge.claude.history import add_to_history, add_to_chat_history, get_chat_context, get_code_context
 from applebridge.config import CONFIG
 
 # PRIVATE state (isolated from other modules)
@@ -21,14 +21,15 @@ _job_counter = 0
 _job_lock = threading.Lock()
 
 
-def create_job(mode, prompt, system_prompt, is_chat=False):
+def create_job(mode, prompt, system_prompt, is_chat=False, display_prompt=None):
     """Create a background job for Claude API call.
 
     Args:
         mode: Mode string ('Code', 'Rez', 'Ask', 'Chat')
-        prompt: User prompt
+        prompt: User prompt (full text sent to Claude)
         system_prompt: System prompt for role/context
         is_chat: True for chat mode (includes history context)
+        display_prompt: Optional shorter prompt for display (defaults to prompt)
 
     Returns:
         job_id: String ID for tracking the job
@@ -40,7 +41,8 @@ def create_job(mode, prompt, system_prompt, is_chat=False):
     _jobs[job_id] = {
         "status": "working",
         "mode": mode,
-        "prompt": prompt,  # Store full prompt for context
+        "prompt": prompt,  # Store full prompt for Claude API
+        "display_prompt": display_prompt or prompt,  # Short version for display
         "answer": None,
         "started": time.time(),
         "error": None,
@@ -53,13 +55,21 @@ def create_job(mode, prompt, system_prompt, is_chat=False):
             api_key = os.environ.get("ANTHROPIC_API_KEY", "")
             logging.debug(f"Job {job_id}: Calling Claude API...")
 
-            # Add context from history for chat only
-            # Code mode: user provides code directly, no need for conversation context
+            # Add context from history
             actual_prompt = prompt
             if is_chat:
+                # Chat mode: always include chat history
                 context = get_chat_context()
                 if context:
                     actual_prompt = context + f"\nNew message:\n{prompt}"
+            elif mode == "Code":
+                # Code mode: include context only for follow-up questions (not when reference code is provided)
+                # If display_prompt is set, it means reference code was pasted, so skip history
+                has_reference_code = "display_prompt" in _jobs[job_id] and _jobs[job_id]["display_prompt"] != prompt
+                if not has_reference_code:
+                    context = get_code_context()
+                    if context:
+                        actual_prompt = context + f"\nNew request:\n{prompt}"
 
             answer = call_claude(api_key, actual_prompt, system_prompt)
             with _job_lock:
@@ -71,7 +81,9 @@ def create_job(mode, prompt, system_prompt, is_chat=False):
                     if is_chat:
                         add_to_chat_history(prompt, answer)
                     else:
-                        add_to_history(mode, _jobs[job_id]["prompt"], answer)
+                        # Use display_prompt for history (shorter version without full code)
+                        display_text = _jobs[job_id].get("display_prompt", _jobs[job_id]["prompt"])
+                        add_to_history(mode, display_text, answer)
 
                     elapsed = time.time() - _jobs[job_id]["started"]
                     logging.info(f"Job {job_id} completed in {elapsed:.1f}s")

@@ -122,12 +122,13 @@ class ClaudeHandler:
         else:
             # Return HTML for browser
             mode = job["mode"]
+            display_text = job.get("display_prompt", job["prompt"])  # Use display_prompt if available
             if mode == "Code":
-                self._send_html(handler, page_code_result(job["prompt"], job["answer"], job_id))
+                self._send_html(handler, page_code_result(display_text, job["answer"], job_id))
             elif mode == "Rez":
-                self._send_html(handler, page_rez_result(job["prompt"], job["answer"], job_id))
+                self._send_html(handler, page_rez_result(display_text, job["answer"], job_id))
             elif mode == "Chat":
-                self._send_html(handler, page_chat_result(job["prompt"], job["answer"], job_id))
+                self._send_html(handler, page_chat_result(display_text, job["answer"], job_id))
             else:
                 self._send_html(handler, page_ask_result(job["prompt"], job["answer"], job_id))
 
@@ -173,9 +174,10 @@ class ClaudeHandler:
                        f"=== END REFERENCE CODE ===\n\n"
                        f"Provide the COMPLETE modified code in a single ```c code block.\n"
                        f"Include the entire working program, not just snippets.")
+                # Show only the question, not the code
+                job_id = create_job("Code", full, SYSTEM_PROMPT_CODE, display_prompt=prompt)
             else:
-                full = prompt
-            job_id = create_job("Code", full, SYSTEM_PROMPT_CODE)
+                job_id = create_job("Code", prompt, SYSTEM_PROMPT_CODE)
             if self._wants_json(handler):
                 self._send_json(handler, {"job_id": job_id})
             else:
