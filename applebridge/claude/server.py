@@ -150,11 +150,14 @@ class ClaudeHandler:
         """Handle POST requests for Claude Interface."""
         content_length = int(handler.headers.get("Content-Length", 0))
         body = handler.rfile.read(content_length).decode("iso-8859-1", errors="replace")
-        # Percent-sequences carry MacRoman, not UTF-8: Netscape 3 hands the
-        # Script Manager's bytes through unchanged, so 'ä' arrives as %8A.
-        # parse_qs defaults to UTF-8, where 0x8A is invalid - it became U+FFFD
-        # and sanitize() then turned every umlaut into '?'.
-        params = parse_qs(body, encoding="mac_roman")
+        # Percent-sequences carry ISO-8859-1, matching the charset every page
+        # is served in - a form is submitted in the document's encoding. So
+        # 'ü' arrives as %FC. parse_qs defaults to UTF-8, where 0xFC is an
+        # invalid byte: it became U+FFFD and sanitize() turned every umlaut
+        # into '?'. MacRoman is equally wrong here - it decodes 0xFC to a
+        # cedilla. The Script Manager governs display on the Mac, not what
+        # the browser puts on the wire.
+        params = parse_qs(body, encoding="iso-8859-1")
         path = urlparse(handler.path).path
 
         api_key = os.environ.get("ANTHROPIC_API_KEY", "")
