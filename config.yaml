@@ -26,7 +26,9 @@ jobs:
 
 # File Management
 files:
-  shared_folder: "/Users/pitforster/Desktop/Share"  # path to shared folder (can be overridden by --shared-folder)
+  # Folder shared with the emulator (Basilisk II 'extfs'). Leave null to
+  # disable the Shared Folder feature. ~ is expanded.
+  shared_folder: "~/Desktop/Share"
 
 # History
 history:

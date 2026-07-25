@@ -46,6 +46,12 @@ def load_config(config_file="config.yaml"):
     else:
         logging.info("No config.yaml found, using defaults")
 
+    # Expand ~ once, here, so every consumer sees an absolute path. The config
+    # file ships with "~/Desktop/Share" so it works on any machine.
+    shared = CONFIG["files"]["shared_folder"]
+    if shared:
+        CONFIG["files"]["shared_folder"] = str(Path(shared).expanduser())
+
 
 LOOPBACK_HOSTS = ("127.0.0.1", "::1", "localhost")
 

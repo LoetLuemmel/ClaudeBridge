@@ -27,6 +27,7 @@ Usage:
 """
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
@@ -34,13 +35,36 @@ from datetime import datetime
 from pathlib import Path
 
 
-PREFS = Path.home() / ".basilisk_ii_prefs"
+PREFS = Path(os.environ.get("BASILISK_PREFS", Path.home() / ".basilisk_ii_prefs"))
 # Remembers the exact 'ether' line we replaced, so switching back restores the
 # original device instead of guessing 'en8'.
-SIDECAR = Path.home() / ".basilisk_ii_prefs.netmode"
-BASILISK_APP = Path("/Users/pitforster/Documents/Basilisk/BasiliskII.app")
+SIDECAR = PREFS.with_name(PREFS.name + ".netmode")
+
+# Where to look for the emulator, in order. Override with BASILISK_APP.
+BASILISK_CANDIDATES = [
+    "/Applications/BasiliskII.app",
+    "~/Applications/BasiliskII.app",
+    "~/Documents/Basilisk/BasiliskII.app",
+    "~/Documents/BasiliskII/BasiliskII.app",
+]
 
 DEFAULT_BRIDGE = "etherhelper/en8"
+
+
+def find_basilisk():
+    """Locate BasiliskII.app, or None if it is not where we look.
+
+    Only needed for --restart; switching the mode itself just edits the prefs.
+    """
+    override = os.environ.get("BASILISK_APP")
+    if override:
+        path = Path(override).expanduser()
+        return path if path.exists() else None
+    for candidate in BASILISK_CANDIDATES:
+        path = Path(candidate).expanduser()
+        if path.exists():
+            return path
+    return None
 
 
 def read_prefs():
@@ -136,7 +160,13 @@ def switch(target, restart):
             print("\nBeende Basilisk II ...")
             subprocess.run(["pkill", "-f", "BasiliskII.app"])
         print("Starte Basilisk II ...")
-        subprocess.run(["open", "-a", str(BASILISK_APP)])
+        app = find_basilisk()
+        if app:
+            subprocess.run(["open", "-a", str(app)])
+        else:
+            print("BasiliskII.app nicht gefunden - bitte von Hand starten.")
+            print("Suchpfade:", ", ".join(BASILISK_CANDIDATES))
+            print("Oder BASILISK_APP=/pfad/zu/BasiliskII.app setzen.")
 
     print()
     if new == "slirp":
