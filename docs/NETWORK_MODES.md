@@ -1,29 +1,35 @@
-# Netzwerkmodi: bridge vs. slirp
+# Networking modes: bridge vs. slirp
 
-Der Modus wird host-seitig in `~/.basilisk_ii_prefs` gesetzt (Schlüssel `ether`)
-und von Basilisk II **beim Start** gelesen. Er lässt sich nicht aus dem Gast
-heraus umschalten — dafür gibt es `netmode.py` auf dem Host.
+*Deutsche Fassung: [NETWORK_MODES.de.md](NETWORK_MODES.de.md)*
+
+The mode is set on the host in `~/.basilisk_ii_prefs` (key `ether`) and read by
+Basilisk II **at startup**. It cannot be switched from inside the guest — that
+is what `netmode.py` on the host is for.
 
 ```bash
-uv run python netmode.py show      # aktueller Modus
-uv run python netmode.py slirp     # NAT im Host
-uv run python netmode.py bridge    # eigener Host im LAN
+python3 netmode.py show      # current mode
+python3 netmode.py slirp     # NAT inside the host
+python3 netmode.py bridge    # own host on the LAN
 ```
 
-**Jeder Moduswechsel hat zwei Hälften.** `netmode.py` erledigt nur die
-host-seitige. Die TCP/IP-Einstellungen **im Gast** müssen von Hand mitgezogen
-werden, sonst steht der Gast nach dem Wechsel ohne Netz da.
+**Every mode change has two halves.** `netmode.py` only does the host one. The
+TCP/IP settings **in the guest** have to follow by hand, or the guest comes back
+up with no network at all.
+
+> **ClaudeBridge 2.0 is slirp-only.** The server binds `127.0.0.1` and refuses
+> to start on any other address. Bridge mode is documented here because the same
+> emulator is also used for AppleBridge — it is not intended for ClaudeBridge.
 
 ---
 
-## Modus A — bridge (Ausgangszustand)
+## Mode A — bridge
 
-Host: `ether etherhelper/en8`, Gast ist ein eigener Host im WLAN.
+Host: `ether etherhelper/en8`. The guest is its own host on the WLAN.
 
-TCP/IP-Kontrollfeld im Gast (Stand 2026-07-25, siehe
+TCP/IP control panel in the guest (example values, see
 [tcpip-bridge-mode.png](tcpip-bridge-mode.png)):
 
-| Feld | Wert |
+| Field | Value |
 |---|---|
 | Connect via | Ethernet |
 | Configure | **Manually** |
@@ -31,76 +37,81 @@ TCP/IP-Kontrollfeld im Gast (Stand 2026-07-25, siehe
 | Subnet mask | `255.255.255.0` |
 | Router address | `192.168.3.1` |
 | Name server addr. | `192.168.3.1` |
-| Search domains | *(leer)* |
+| Search domains | *(empty)* |
 
-Bridge-Server erreichbar unter `http://192.168.3.154:8080/`.
+The server would then be reachable at `http://<host-lan-ip>:8080/`.
 
-Konsequenzen: Server muss auf `0.0.0.0` binden, **macOS-Firewall muss aus**
-(Per-App-Freigabe greift nicht, siehe unten), und Port 8080 ist damit für jedes
-Gerät im WLAN offen.
+Consequences: the server would have to bind `0.0.0.0`, the **macOS firewall
+would have to be off** (a per-app exception does not work, see below), and port
+8080 would be open to every device on the WLAN. Avoiding exactly that trade is
+the point of ClaudeBridge 2.0.
 
 ---
 
-## Modus B — slirp (NAT im Host)
+## Mode B — slirp (default)
 
-Host: `ether slirp`. Der Gast sitzt hinter einem NAT *innerhalb* des Macs und
-hat keine eigene LAN-Adresse mehr.
+Host: `ether slirp`. The guest sits behind a NAT *inside* the Mac and no longer
+has a LAN address of its own.
 
-TCP/IP-Kontrollfeld im Gast:
+TCP/IP control panel in the guest:
 
-| Feld | Wert |
+| Field | Value |
 |---|---|
 | Connect via | Ethernet |
 | Configure | **Using DHCP Server** |
 
-slirp bringt einen eigenen DHCP-Server mit und vergibt:
+slirp brings its own DHCP server and hands out:
 
-| Rolle | Adresse |
+| Role | Address |
 |---|---|
-| Gast | `10.0.2.15` |
-| Gateway / Host | `10.0.2.2` |
+| Guest | `10.0.2.15` |
+| Gateway / host | `10.0.2.2` |
 | DNS | `10.0.2.3` |
 
-Bridge-Server dann erreichbar unter `http://10.0.2.2:8080/`.
+The server is reachable at `http://10.0.2.2:8080/`.
 
-Ziel dieses Modus: Server bindet auf `127.0.0.1`, die **Firewall bleibt an**,
-und die Angriffsfläche schrumpft von „jeder im WLAN" auf „Prozesse auf diesem
-Mac". Ob slirps `10.0.2.2` tatsächlich auf den Host-Loopback abbildet, ist der
-Punkt, der gemessen werden muss.
+The server binds `127.0.0.1`, the **firewall stays on**, and the attack surface
+shrinks from "anyone on the WLAN" to "processes on this machine".
 
-**Preis:** Kein AppleTalk zu anderen Rechnern, keine eingehenden Verbindungen
-zum Classic Mac von außen.
+**Verified 2026-07-25:** requests from the guest arrive at the server as
+`127.0.0.1` — slirp translates them onto a local socket of the emulator process.
+That is why loopback is sufficient, and why the loopback restriction on the
+setup page works from the guest.
+
+**The price:** no AppleTalk to other machines, and no inbound connections to the
+Classic Mac from outside.
 
 ---
 
-## Rückweg
+## Going back
 
 ```bash
-uv run python netmode.py bridge
+python3 netmode.py bridge
 ```
 
-Stellt die `ether`-Zeile exakt wieder her (der vorherige Wert liegt in
-`~/.basilisk_ii_prefs.netmode`). Anschließend im Gast TCP/IP zurück auf
-**Manually** mit den Werten aus Modus A. `netmode.py` legt vor jeder Änderung
-ein Backup `~/.basilisk_ii_prefs.bak-<zeitstempel>` an.
+This restores the `ether` line exactly (the previous value is kept in
+`~/.basilisk_ii_prefs.netmode`). Afterwards set the guest's TCP/IP back to
+**Manually** with the values from mode A. `netmode.py` writes a backup
+`~/.basilisk_ii_prefs.bak-<timestamp>` before every change.
 
 ---
 
-## Fallstrick: Firewall im bridge-Modus
+## Pitfall: the firewall in bridge mode
 
-Im bridge-Modus reicht eine Per-App-Freigabe der Firewall **nicht**. In der
-ALF-Allowlist landet `…/Versions/3.12/bin/python3`, der laufende Prozess ist
-aber `…/Versions/3.12/Resources/Python.app/Contents/MacOS/Python`. Die Freigabe
-greift nie.
+In bridge mode a per-app firewall exception is **not** enough. What lands in the
+ALF allowlist is `…/Versions/3.12/bin/python3`, while the running process is
+`…/Versions/3.12/Resources/Python.app/Contents/MacOS/Python`. The exception
+never applies.
 
-Symptom ist ein **Broken Pipe** bzw. „Empty reply from server", *kein*
-Connection Refused: ALF lässt den TCP-Handshake durch und beendet die Verbindung
-erst danach. Diagnose-Merkmal — Loopback ist ALF-exempt, das LAN nicht:
+The symptom is a **broken pipe** or "Empty reply from server" — *not* connection
+refused. ALF lets the TCP handshake complete and terminates the connection
+afterwards. The distinguishing detail is that loopback is exempt from ALF while
+the LAN is not:
 
-| Ziel | Ergebnis | Log-Eintrag |
+| Target | Result | Log entry |
 |---|---|---|
-| `127.0.0.1:8080` | HTTP 200 | ja |
-| LAN-IP `:8080` | `http_code=000` | **nein** |
+| `127.0.0.1:8080` | HTTP 200 | yes |
+| LAN IP `:8080` | `http_code=000` | **no** |
 
-Vorsicht: `nc -z` meldet trotzdem „succeeded", weil es keine Daten sendet.
-Immer mit `curl` oder einem rohen `GET / HTTP/1.0` testen.
+Careful: `nc -z` still reports "succeeded", because it sends no data. Always
+test with `curl` or a raw `GET / HTTP/1.0`.
