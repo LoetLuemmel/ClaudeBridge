@@ -25,3 +25,6 @@ venv/
 
 # API Keys
 api_key
+
+# Lokale Sicherungskopien
+*.backup
