@@ -1,10 +1,16 @@
-# Claude Bridge Server v1.3
+# Claude Bridge Server v2.1
 
-An HTTP server that makes Claude AI accessible for Classic Mac OS systems (MacOS 7.5 in Basilisk II) with Netscape 3.
+An HTTP server that makes Claude AI accessible for Classic Mac OS systems (MacOS 7.5 in Basilisk II) via native app or Netscape 3 browser.
 
 ## Overview
 
-This server enables access to the Claude API from a vintage Mac with Netscape Navigator 3. The server is specifically optimized for the limitations of old browsers (HTML 3.2, ISO-8859-1 encoding, META REFRESH for asynchronous updates).
+This server enables access to the Claude API from a vintage Mac with either:
+- **Native Think C Application** (NEW in v2.1) - Fast, efficient, native Mac Toolbox UI
+- **Netscape Navigator 3** - Browser-based interface with HTML 3.2
+
+The server automatically detects the client type and responds appropriately (JSON for native app, HTML for browser).
+
+**New in v2.1**: Native Think C 7.0 application with MacTCP networking, JSON API support, mode selection, preferences, and file saving
 
 **New in v1.3**: English UI, Web Proxy with HTTPS-to-HTTP bridging, image optimization for vintage browsers, rate limiting for Wikipedia
 
@@ -26,7 +32,44 @@ python3 claude_bridge.py --shared-folder ~/Desktop/Share
 # http://localhost:8080/
 ```
 
-That's it! The server is running and ready for Netscape 3.
+That's it! The server is running and ready for Netscape 3 or the native app.
+
+## Client Options
+
+### Option 1: Native Think C Application (Recommended)
+
+A native Mac application built with Think C 7.0 that communicates directly with the server via MacTCP.
+
+**Advantages over browser:**
+- ✅ **Faster UI**: Instant response, no page reloads
+- ✅ **Better Polling**: Event loop instead of META REFRESH flicker
+- ✅ **One-Click Copy**: Direct clipboard access (no 3-step workaround)
+- ✅ **Native Encoding**: MacRoman instead of ISO-8859-1 limitations
+- ✅ **Save to File**: StandardFile dialog integration
+- ✅ **Preferences**: Configurable server IP and port
+
+**Setup:**
+1. Compile the app with Think C 7.0 (see `ClassicClient/BUILD.txt`)
+2. Configure MacTCP with network settings
+3. Launch "Claude Assistant" application
+4. Set server IP in Preferences
+5. Start asking questions!
+
+**Documentation:**
+- `ClassicClient/README.txt` - User guide
+- `ClassicClient/BUILD.txt` - Build instructions
+- `CHANGES_NATIVE_CLIENT.txt` - Technical details
+
+### Option 2: Netscape Navigator 3 (Classic)
+
+Browser-based interface using HTML 3.2 and META REFRESH for polling.
+
+**Setup:**
+1. Open Netscape Navigator 3
+2. Navigate to `http://[SERVER-IP]:8080/`
+3. Use web forms to interact with Claude
+
+**Good for:** Quick access without compiling, testing on modern browsers
 
 ## Features
 
@@ -203,10 +246,14 @@ The Web Proxy allows you to browse modern HTTPS websites in Netscape Navigator 3
 ### Server Components
 
 - **HTTP Server**: BaseHTTPRequestHandler with Threading
+- **Unified Handler**: Routes requests to Claude Interface or Web Proxy
+- **Claude Interface**:
+  - Automatic client detection (User-Agent: "ClaudeAssistant" → JSON, else → HTML)
+  - JSON API for native app (job_id, status, answer)
+  - HTML templates for browser (HTML 3.2)
 - **Job Queue**: Background processing of API calls
 - **File Management**: Read/write in Shared Folder
-- **Character Sanitization**: Unicode → ISO-8859-1 conversion
-- **HTML Templates**: HTML 3.2 compliant pages
+- **Character Sanitization**: Unicode → ISO-8859-1/UTF-8 conversion
 - **Web Proxy**: HTTPS fetching + HTML/image conversion
 - **Image Cache**: LRU cache with 100 entries, 1 hour TTL
 - **Rate Limiter**: Per-domain request tracking
@@ -221,12 +268,66 @@ The server uses specialized system prompts:
 
 ### Workflow
 
+**Browser Client:**
 1. User sends request via HTML form
 2. Server creates background job
 3. "Please wait" page with META REFRESH
 4. Claude API call in background
 5. Automatic redirect to result
 6. Result with save and follow-up options
+
+**Native Client:**
+1. App sends HTTP POST with User-Agent: "ClaudeAssistant/1.0"
+2. Server creates background job, returns JSON: `{"job_id": "abc123"}`
+3. App polls GET /result/{job_id} every 2 seconds
+4. Server returns `{"status": "working", "elapsed": N}` while processing
+5. When done, server returns `{"status": "done", "answer": "...", "mode": "Code"}`
+6. App displays answer in TextEdit control
+
+### JSON API Reference
+
+For native clients, set User-Agent header to include "ClaudeAssistant".
+
+**Create Job:**
+```http
+POST /code (or /rez, /ask, /chat)
+User-Agent: ClaudeAssistant/1.0 (Mac OS 7.5)
+Content-Type: application/x-www-form-urlencoded
+
+prompt=<url-encoded-text>
+```
+
+Response:
+```json
+{"job_id": "abc123"}
+```
+
+**Poll Status:**
+```http
+GET /result/{job_id}
+User-Agent: ClaudeAssistant/1.0 (Mac OS 7.5)
+```
+
+Response (working):
+```json
+{"status": "working", "elapsed": 15}
+```
+
+Response (done):
+```json
+{
+  "status": "done",
+  "mode": "Code",
+  "answer": "Here's the answer..."
+}
+```
+
+Response (error):
+```json
+{"error": "Job not found"}
+```
+
+See `CHANGES_NATIVE_CLIENT.txt` for complete API specification.
 
 ## Technical Details
 
@@ -387,14 +488,38 @@ All tests have 100% pass rate.
 
 ```
 AppleBridge/
-├── claude_bridge.py       # Main server (~1600 lines)
-├── test_claude_bridge.py  # Unit tests (232 lines)
-├── config.yaml            # Configuration file
-├── requirements.txt       # Python dependencies
-├── start_bridge.sh        # Start script (macOS)
-├── CLAUDE.md              # Development guidelines
-├── README.md              # This file
-└── .gitignore             # Git ignore rules
+├── claude_bridge.py            # Main server entry point
+├── applebridge/                # Server package (modular architecture)
+│   ├── config.py               # Configuration management
+│   ├── encoding.py             # Character encoding utilities
+│   ├── claude/                 # Claude Interface module
+│   │   ├── server.py           # HTTP handlers (HTML + JSON API)
+│   │   ├── jobs.py             # Job queue and processing
+│   │   ├── prompts.py          # System prompts
+│   │   ├── templates.py        # HTML templates
+│   │   ├── history.py          # Conversation history
+│   │   └── files.py            # Shared folder management
+│   └── proxy/                  # Web Proxy module
+│       ├── server.py           # Proxy HTTP handlers
+│       ├── fetcher.py          # HTTPS fetching
+│       ├── simplifier.py       # HTML simplification
+│       └── images.py           # Image optimization
+├── ClassicClient/              # Native Think C 7.0 application
+│   ├── main.c                  # Event loop, handlers
+│   ├── ui.c                    # Window, menu, drawing
+│   ├── network.c               # MacTCP HTTP client
+│   ├── prefs.c                 # Preferences management
+│   ├── globals.h               # Global definitions
+│   ├── http.h                  # HTTP API definitions
+│   ├── ClaudeAssistant.r       # Rez resources
+│   ├── README.txt              # User documentation
+│   └── BUILD.txt               # Build instructions
+├── config.yaml                 # Server configuration
+├── requirements.txt            # Python dependencies
+├── start_bridge.sh             # Start script (macOS)
+├── CLAUDE.md                   # Development guidelines
+├── CHANGES_NATIVE_CLIENT.txt   # v2.1 changes
+└── README.md                   # This file
 ```
 
 ### Development Guidelines
@@ -426,9 +551,30 @@ Peter Forster
 
 ## Version
 
-**Current Version**: 1.3 (April 2026)
+**Current Version**: 2.1 (April 2026)
 
 ### Changelog
+
+#### v2.1 (2026-04-02)
+- ✨ **Feature**: Native Think C 7.0 application for Classic Mac OS 7.5
+  - Full Mac Toolbox UI with TextEdit controls
+  - MacTCP HTTP client implementation
+  - Asynchronous job polling via event loop (no META REFRESH flicker!)
+  - One-click clipboard copy
+  - StandardFile dialog for saving
+  - Preferences dialog with persistence
+  - Mode selection (Code/Rez/Ask/Chat)
+- ✨ **Feature**: JSON API support in server
+  - Automatic client detection via User-Agent header
+  - JSON responses for native app: `{"job_id": "..."}`, `{"status": "done", "answer": "..."}`
+  - HTML responses for browser (unchanged, 100% backwards compatible)
+- 📁 **New**: Complete ClassicClient/ directory with source code
+  - main.c, ui.c, network.c, prefs.c (ca. 2000 lines)
+  - globals.h, http.h
+  - ClaudeAssistant.r (Rez resources)
+  - README.txt, BUILD.txt
+- 📝 **Docs**: CHANGES_NATIVE_CLIENT.txt with technical details
+- 🏗️ **Refactor**: Server now modular (applebridge/ package)
 
 #### v1.3 (2026-04-01)
 - ✨ **Feature**: English UI (all German text translated)

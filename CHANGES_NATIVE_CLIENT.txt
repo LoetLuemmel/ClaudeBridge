@@ -1,0 +1,292 @@
+AppleBridge Server Changes for Native Client Support
+====================================================
+
+Date: 2025-04-02
+Version: 2.1
+
+OVERVIEW
+--------
+Added JSON API support for native Think C client while maintaining
+full backwards compatibility with existing Netscape 3 browser client.
+
+CHANGES TO SERVER
+-----------------
+
+File: applebridge/claude/server.py
+
+1. Added JSON Support:
+   - New import: json
+   - New method: _wants_json(handler)
+     * Checks User-Agent header for "ClaudeAssistant"
+     * Returns True if native client, False if browser
+
+   - New method: _send_json(handler, data)
+     * Sends JSON response with UTF-8 encoding
+     * Content-Type: application/json
+
+2. Modified _handle_result() method:
+   - Now checks _wants_json() before sending response
+   - For native client:
+     * Returns {"status": "working", "elapsed": N} if still working
+     * Returns {"status": "done", "answer": "...", "mode": "..."} if complete
+     * Returns {"error": "..."} if job not found
+   - For browser client:
+     * Returns HTML as before (unchanged)
+
+3. Modified handle_post() method:
+   - All POST endpoints (/code, /rez, /ask, /chat) now check _wants_json()
+   - For native client:
+     * Returns {"job_id": "abc123"} after creating job
+     * Returns {"error": "..."} on errors
+   - For browser client:
+     * Returns HTML waiting page as before (unchanged)
+
+4. API Key Error Handling:
+   - Now returns JSON {"error": "ANTHROPIC_API_KEY not set"} for native client
+   - Returns HTML error page for browser client (unchanged)
+
+BACKWARDS COMPATIBILITY
+-----------------------
+✅ All existing browser endpoints work exactly as before
+✅ Netscape 3 client unaffected
+✅ No changes to HTML templates
+✅ No changes to job processing
+✅ No changes to Claude API integration
+
+The server automatically detects the client type via User-Agent header
+and responds accordingly:
+- Browser (Netscape 3): HTML responses (as before)
+- Native App (ClaudeAssistant): JSON responses (new)
+
+JSON API SPECIFICATION
+----------------------
+
+For native clients, set User-Agent header to include "ClaudeAssistant".
+
+Example:
+  User-Agent: ClaudeAssistant/1.0 (Mac OS 7.5)
+
+Endpoints:
+
+1. POST /code
+   Request:
+     Content-Type: application/x-www-form-urlencoded
+     Body: prompt=<url-encoded-text>
+
+   Response (JSON):
+     {"job_id": "abc123"}
+
+   Error Response:
+     {"error": "error message"}
+
+2. POST /rez
+   Request:
+     Content-Type: application/x-www-form-urlencoded
+     Body: prompt=<url-encoded-text>
+
+   Response (JSON):
+     {"job_id": "abc123"}
+
+3. POST /ask
+   Request:
+     Content-Type: application/x-www-form-urlencoded
+     Body: prompt=<url-encoded-text>
+
+   Response (JSON):
+     {"job_id": "abc123"}
+
+4. POST /chat
+   Request:
+     Content-Type: application/x-www-form-urlencoded
+     Body: message=<url-encoded-text>
+
+   Response (JSON):
+     {"job_id": "abc123"}
+
+   Error Response (empty message):
+     {"error": "Empty message"}
+
+5. GET /result/<job_id>
+   Response (still working):
+     {"status": "working", "elapsed": 15}
+
+   Response (done):
+     {"status": "done", "answer": "...", "mode": "Code"}
+
+   Response (error/timeout):
+     {"status": "error", "answer": "error message", "mode": "..."}
+
+   Response (job not found):
+     {"error": "Job not found"}
+
+EXAMPLE WORKFLOW (Native Client)
+---------------------------------
+
+1. Send Job Request:
+   POST /code
+   User-Agent: ClaudeAssistant/1.0 (Mac OS 7.5)
+   Body: prompt=Explain+how+handles+work+in+Think+C
+
+   Response:
+   {"job_id": "f3b2c1a9"}
+
+2. Poll for Result (every 2 seconds):
+   GET /result/f3b2c1a9
+   User-Agent: ClaudeAssistant/1.0 (Mac OS 7.5)
+
+   Response (still working):
+   {"status": "working", "elapsed": 4}
+
+3. Poll Again:
+   GET /result/f3b2c1a9
+   User-Agent: ClaudeAssistant/1.0 (Mac OS 7.5)
+
+   Response (done):
+   {
+     "status": "done",
+     "mode": "Code",
+     "answer": "Handles in Think C are pointers to pointers..."
+   }
+
+TESTING
+-------
+
+Test with Browser (Netscape 3):
+  1. Open http://server:8080/
+  2. Verify HTML interface works
+  3. Submit code question
+  4. Verify META REFRESH polling works
+  5. Verify result displays correctly
+
+Test with Native Client:
+  1. Launch Claude Assistant app
+  2. Set server IP in Preferences
+  3. Submit question
+  4. Verify polling works
+  5. Verify response displays
+
+Test with curl (simulate native client):
+  # Send job
+  curl -X POST http://localhost:8080/code \
+    -H "User-Agent: ClaudeAssistant/1.0" \
+    -d "prompt=test"
+  # Returns: {"job_id": "..."}
+
+  # Poll result
+  curl http://localhost:8080/result/JOB_ID \
+    -H "User-Agent: ClaudeAssistant/1.0"
+  # Returns: {"status": "working", ...} or {"status": "done", ...}
+
+DEPLOYMENT
+----------
+
+No special deployment steps required. The changes are backwards compatible.
+
+Simply restart the server:
+  uv run claude_bridge.py
+
+The server will automatically handle both browser and native clients.
+
+FUTURE ENHANCEMENTS
+-------------------
+
+Possible improvements:
+
+1. Dedicated /api/* endpoints:
+   - /api/v1/jobs (POST to create, GET to list)
+   - /api/v1/jobs/{id} (GET for status)
+   - RESTful design
+
+2. Authentication:
+   - API keys for native clients
+   - Rate limiting per client
+
+3. WebSocket support:
+   - Real-time updates instead of polling
+   - Requires more complex MacTCP code
+
+4. Binary protocol:
+   - More efficient than JSON
+   - Smaller responses for slow networks
+
+5. Compression:
+   - gzip responses
+   - Reduce bandwidth usage
+
+MIGRATION NOTES
+---------------
+
+If you update the server, native clients need no changes.
+
+If you want to use new JSON endpoints from other clients:
+  - Set User-Agent to include "ClaudeAssistant"
+  - Parse JSON responses instead of HTML
+  - Implement polling logic (every 2 seconds recommended)
+
+KNOWN LIMITATIONS
+-----------------
+
+1. User-Agent Detection:
+   - Could be spoofed
+   - Not suitable for security
+   - Fine for client type detection
+
+2. UTF-8 in JSON:
+   - Native client must handle UTF-8
+   - MacRoman conversion may be needed
+   - Current implementation uses ensure_ascii=False
+
+3. No Streaming:
+   - Responses are buffered
+   - Large responses may take time
+   - No progress updates during generation
+
+4. No Cancellation:
+   - Jobs run to completion
+   - No way to cancel via API
+   - Client must wait or timeout
+
+FILE CHANGES SUMMARY
+--------------------
+
+Modified Files:
+  applebridge/claude/server.py
+    - Added json import
+    - Added _wants_json() method
+    - Added _send_json() method
+    - Modified _handle_result() for JSON support
+    - Modified handle_post() for JSON support
+    - Modified API key error handling
+
+New Files:
+  ClassicClient/ (entire directory)
+    - main.c
+    - ui.c
+    - network.c
+    - prefs.c
+    - globals.h
+    - http.h
+    - ClaudeAssistant.r
+    - README.txt
+    - BUILD.txt
+
+Documentation:
+  CHANGES_NATIVE_CLIENT.txt (this file)
+
+Unchanged Files:
+  - applebridge/claude/templates.py (all HTML templates)
+  - applebridge/claude/prompts.py (system prompts)
+  - applebridge/claude/jobs.py (job processing)
+  - applebridge/proxy/* (web proxy)
+  - claude_bridge.py (main entry point)
+  - All other files
+
+CONCLUSION
+----------
+
+The AppleBridge server now supports both browser and native clients
+simultaneously, with automatic client detection and appropriate response
+formatting. No existing functionality was changed or removed.
+
+Browser users: Continue using Netscape 3 as before
+Native users: Use new Claude Assistant app with JSON API

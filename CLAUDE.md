@@ -190,3 +190,41 @@ Aktuell: Python 3.12
 - ✅ Deutsche Sprache in UI beibehalten
 - ✅ Think C Kompatibilität prüfen
 - ✅ Netscape 3 Limitierungen beachten
+
+## Native Think C Client (ab v2.1)
+
+### Wichtige Hinweise für die Native App
+
+**Character Encoding - Native App**:
+- **Server → Native App**: UTF-8 in JSON responses
+- **Native App → Server**: URL-encoded form data
+- **MacRoman Conversion**: Native app muss UTF-8 → MacRoman konvertieren
+- **User-Agent Detection**: Server erkennt "ClaudeAssistant" im User-Agent Header
+
+**JSON API Kompatibilität**:
+- ✅ Server sendet automatisch JSON wenn User-Agent "ClaudeAssistant" enthält
+- ✅ HTML responses für Browser bleiben unverändert (100% rückwärtskompatibel)
+- ✅ Kein Breaking Change für bestehende Netscape 3 Clients
+
+**Think C 7.0 Einschränkungen**:
+- **Keine C99 Features**: Variablen müssen am Funktionsanfang deklariert werden
+- **Nur /* */ Kommentare**: Keine // Kommentare
+- **Pascal Strings**: `"\pHello"` für UI-Strings
+- **Handle-based Memory**: `NewHandle()`, `HLock()`, `HUnlock()`, `DisposHandle()`
+- **MacTCP API**: Asynchrone I/O mit Parameter-Blöcken (`TCPiopb`)
+
+**Kritische Dateien**:
+- `ClassicClient/globals.h` - Alle Definitionen, Konstanten, Prototypen
+- `ClassicClient/main.c` - Event Loop, nicht verändern ohne Tests
+- `ClassicClient/network.c` - MacTCP Code, sehr fragil
+- `ClassicClient/ClaudeAssistant.r` - Rez Resources, nur mit ResEdit/Rez Compiler
+
+**Server-seitige Änderungen für Native Client**:
+- `applebridge/claude/server.py` - User-Agent Detection in `_wants_json()`
+- **NIEMALS** JSON API entfernen - Native Client hängt davon ab!
+- **NIEMALS** User-Agent Check ändern ohne Absprache
+
+**Testing-Anforderungen**:
+1. **Browser-Test**: Netscape 3 muss weiterhin funktionieren (HTML responses)
+2. **Native App Test**: Think C App auf Basilisk II testen (JSON responses)
+3. **Beide parallel**: Server muss beide Clients gleichzeitig bedienen können

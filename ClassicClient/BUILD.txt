@@ -1,0 +1,254 @@
+Building Claude Assistant with Think C 7.0
+==========================================
+
+PREREQUISITES
+-------------
+- Macintosh running System 7.5 or later
+- Think C 7.0 (or compatible compiler)
+- MacTCP 2.0.6 or later installed and configured
+- Approximately 2 MB free disk space
+
+STEP 1: PREPARE FILES
+---------------------
+1. Create a folder "Claude Assistant" on your hard drive
+2. Copy all source files to this folder:
+   - main.c
+   - ui.c
+   - network.c
+   - prefs.c
+   - globals.h
+   - http.h
+   - ClaudeAssistant.r
+
+STEP 2: COMPILE REZ FILE
+-------------------------
+1. Open ResEdit or Rez compiler
+2. Compile ClaudeAssistant.r:
+
+   Command line (if using MPW):
+   Rez ClaudeAssistant.r -o "Claude Assistant.rsrc"
+
+   Or use Think C's built-in Rez compiler:
+   - Add ClaudeAssistant.r to project
+   - Think C will compile it automatically
+
+STEP 3: CREATE THINK C PROJECT
+-------------------------------
+1. Launch Think C 7.0
+2. Choose File > New Project
+3. Save project as "Claude Assistant.π"
+4. Add source files to project:
+   - Click "Add..."
+   - Select main.c
+   - Select ui.c
+   - Select network.c
+   - Select prefs.c
+
+5. Add required libraries:
+   - Click "Add..."
+   - Browse to Think C "Libraries" folder
+   - Add: MacTraps
+   - Add: ANSI
+   - Add: unix
+   - Add: MacTCP (if available in Libraries folder)
+
+STEP 4: PROJECT SETTINGS
+-------------------------
+1. Choose Edit > Options...
+
+2. Language Settings:
+   - ANSI Keywords Only: OFF
+   - Require Function Prototypes: ON
+   - Check Pointer Types: ON
+   - Use Extended Sizes: ON
+
+3. Code Generation:
+   - Processor: 68020 (or 68k for compatibility)
+   - FPU: 68881 (or None for compatibility)
+   - Code Model: Small
+   - Separate STRS: ON
+
+4. Memory Settings:
+   - Preferred Size: 512 KB
+   - Minimum Size: 256 KB
+
+STEP 5: SET RESOURCE FILE
+--------------------------
+1. Choose Project > Set Project Type...
+2. Select: Application
+3. Creator: CLAU
+4. Type: APPL
+5. Resource File: "Claude Assistant.rsrc" (auto-created or from Step 2)
+
+STEP 6: BUILD APPLICATION
+--------------------------
+1. Choose Project > Bring Up To Date (Cmd-U)
+   - Think C will compile all source files
+   - Watch for errors in the message window
+
+2. If compilation succeeds:
+   - Choose Project > Build Application... (Cmd-B)
+   - Save as: "Claude Assistant"
+   - Think C will link and create the application
+
+3. If errors occur:
+   - Check that all #include files are found
+   - Verify MacTCP library is added
+   - Ensure all function prototypes match
+   - Check for Think C 7.0 compatibility issues
+
+STEP 7: TEST APPLICATION
+-------------------------
+1. Ensure AppleBridge server is running:
+   - On modern Mac/Linux: uv run claude_bridge.py
+   - Note the server IP address
+
+2. Configure MacTCP:
+   - Open MacTCP control panel
+   - Set IP address (static or DHCP)
+   - Test network connection with Ping
+
+3. Launch Claude Assistant
+4. If Preferences dialog doesn't appear:
+   - Choose File > Preferences...
+   - Enter server IP (e.g., 192.168.1.100)
+   - Enter port (default: 8080)
+   - Click OK
+
+5. Test basic functionality:
+   - Type a question in input field
+   - Click "Send" button
+   - Wait for response (status bar shows progress)
+   - Response should appear in output field
+
+TROUBLESHOOTING
+---------------
+
+Compilation Errors:
+
+1. "Can't find MacTCP.h"
+   → MacTCP library not installed or not in library path
+   → Solution: Install MacTCP SDK or use Open Transport
+
+2. "Undefined symbol: TCPCreate"
+   → MacTCP library not added to project
+   → Solution: Add MacTCP library in Step 3
+
+3. "Type mismatch in function call"
+   → Think C is stricter about types
+   → Check function prototypes in globals.h
+
+4. "Illegal instruction size"
+   → Code generation settings incompatible
+   → Try changing Processor to 68k in Step 4
+
+Runtime Errors:
+
+1. Application crashes on launch
+   → Memory allocation too small
+   → Increase Preferred Size in Get Info (Finder)
+
+2. "Network initialization failed"
+   → MacTCP not installed or not configured
+   → Check MacTCP control panel
+
+3. "Failed to send request"
+   → Server IP/port incorrect
+   → Server not running
+   → Firewall blocking connection
+   → Check network connectivity
+
+4. Application hangs during "Claude is working..."
+   → Network connection lost
+   → Server crashed
+   → Request timed out
+   → Force quit (Cmd-Option-Esc) and try again
+
+OPTIMIZATION TIPS
+-----------------
+
+For smaller code size:
+- Use 68k instead of 68020
+- Disable debugging symbols
+- Use "Dead-strip static data"
+
+For better compatibility:
+- Target 68k (not 68020/68030)
+- Don't use FPU
+- Test on System 7.0.1
+
+For better performance:
+- Use 68020 or PowerPC code
+- Enable optimizations
+- Increase memory allocation
+
+ALTERNATIVE COMPILERS
+---------------------
+
+If Think C 7.0 is not available:
+
+1. Metrowerks CodeWarrior:
+   - Create new project (68k or PowerPC)
+   - Add source files
+   - Add MacOS.lib and MacTCP.lib
+   - Build
+
+2. MPW (Macintosh Programmer's Workshop):
+   - More complex but very powerful
+   - Use MrC compiler
+   - Write Makefile
+   - Build from command line
+
+3. Symantec C++:
+   - Similar to Think C
+   - May need minor code adjustments
+
+KNOWN ISSUES
+------------
+
+1. DNS Resolution Not Implemented
+   - Workaround: Use IP addresses only
+   - Future: Add MacTCP DNR support
+
+2. HTTPS Not Supported
+   - Workaround: Server must use HTTP
+   - MacTCP doesn't support SSL/TLS
+
+3. Large Responses May Fail
+   - Limit: 32 KB response size
+   - Workaround: Ask shorter questions
+
+4. No Progress Bar
+   - Only text status updates
+   - Future: Add animated progress indicator
+
+DISTRIBUTION
+------------
+
+To distribute the application:
+
+1. Copy "Claude Assistant" application
+2. Include README.txt
+3. Include server URL/instructions
+4. Users need MacTCP installed
+5. Users need network access to server
+
+Optional: Create installer with StuffIt or DiskCopy
+
+VERSION HISTORY
+---------------
+1.0 (2025-04-02)
+- Initial release
+- Basic UI with TextEdit
+- HTTP client via MacTCP
+- Job polling
+- Mode selection
+- Preferences dialog
+- Save to file
+
+CREDITS
+-------
+Built with Think C 7.0
+MacTCP by Apple Computer
+AppleBridge server integration
+Claude API by Anthropic
