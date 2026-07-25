@@ -22,7 +22,7 @@ Netscape 3 (System 7.6.1)  ──HTTP/1.0──▶  ClaudeBridge  ──HTTPS─
 git clone https://github.com/LoetLuemmel/ClaudeBridge.git
 cd ClaudeBridge
 
-pip install -r requirements.txt        # or: uv pip install -r requirements.txt
+python3 -m pip install -r requirements.txt   # or: uv pip install -r requirements.txt
 
 mkdir -p ~/.config/anthropic
 echo 'sk-ant-...' > ~/.config/anthropic/api_key
@@ -38,6 +38,11 @@ On the host itself: `http://127.0.0.1:8080/`
 ---
 
 ## Requirements
+
+> **Use `python3 -m pip`, not a bare `pip`.** Current macOS ships no standalone
+> `pip` command, and a virtual environment created by `uv venv` does not contain
+> one either — so `pip install` fails with `command not found` even with an
+> environment active. The module form always works.
 
 **Host** — macOS with Python 3.8+, and three libraries:
 
