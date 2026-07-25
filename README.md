@@ -35,6 +35,16 @@ Then, in Netscape on the emulated Mac: **`http://10.0.2.2:8080/`**
 
 On the host itself: `http://127.0.0.1:8080/`
 
+> **Every command runs inside the checkout** — `git pull`, `start_bridge.sh`,
+> `netmode.py`, the tests. A new terminal window starts in your home directory
+> instead, and `git pull` then answers `fatal: not a git repository` although
+> the checkout is perfectly fine. `pwd` settles it.
+>
+> Naming the virtual environment `.venv` inside the checkout avoids a confusing
+> case: if it carries the same name as the directory, the prompt shows that word
+> twice for two unrelated reasons. `start_bridge.sh` also finds `.venv`
+> automatically.
+
 ---
 
 ## Requirements
