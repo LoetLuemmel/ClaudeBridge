@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """
-Basilisk II Network Mode Switch
-================================
+Emulator Network Mode Switch
+=============================
+
+Works with Basilisk II and SheepShaver - both share the preferences format and
+the 'ether' key. Defaults to ~/.basilisk_ii_prefs; for SheepShaver set
+BASILISK_PREFS=~/.sheepshaver_prefs.
 
 Switches the emulator between the two networking modes and, with that, decides
 how exposed the Claude Bridge server has to be:
@@ -92,8 +96,15 @@ def describe(value):
 
 
 def is_running():
-    r = subprocess.run(["pgrep", "-f", "BasiliskII.app"], capture_output=True)
-    return r.returncode == 0
+    """True if Basilisk II or SheepShaver is running.
+
+    Both emulators share the preferences format and the 'ether' key, so this
+    script works for either - point BASILISK_PREFS at ~/.sheepshaver_prefs.
+    """
+    for name in ("BasiliskII", "SheepShaver"):
+        if subprocess.run(["pgrep", "-f", name], capture_output=True).returncode == 0:
+            return True
+    return False
 
 
 def backup():
@@ -186,7 +197,7 @@ def show():
     current = current_ether(lines)
     print(f"Prefs        : {PREFS}")
     print(f"Modus        : {describe(current)}")
-    print(f"Basilisk II  : {'laeuft' if is_running() else 'gestoppt'}")
+    print(f"Emulator     : {'laeuft' if is_running() else 'gestoppt'}")
     if SIDECAR.exists():
         print(f"Gemerkt      : {SIDECAR.read_text(encoding='utf-8').strip()} (fuer Rueckschaltung)")
 

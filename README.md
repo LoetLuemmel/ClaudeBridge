@@ -79,8 +79,14 @@ installation:
 - **TCP/IP** control panel → Connect via `Ethernet`, Configure `Using DHCP Server`
 - **Netscape** → character set `Western` (ISO-8859-1)
 
-**Emulator** — Basilisk II in **slirp** mode (`ether slirp` in
-`~/.basilisk_ii_prefs`). See *Networking* below.
+**Emulator** — **Basilisk II** (68k) or **SheepShaver** (PowerPC) in **slirp**
+mode. Both come from the same codebase and share the preferences format, so
+everything here applies to either; only the file differs
+(`~/.basilisk_ii_prefs` vs. `~/.sheepshaver_prefs`). See *Networking* below.
+
+Real hardware is a different case: a physical Mac sits on the LAN, and slirp
+exists only inside an emulator process. ClaudeBridge binds loopback, so it
+cannot serve a real machine — that is what AppleBridge is for.
 
 ---
 
@@ -148,6 +154,9 @@ trade is the point of this version.
 python3 netmode.py show      # current mode
 python3 netmode.py slirp     # NAT inside the host
 python3 netmode.py bridge    # own host on the LAN (not for this version)
+
+# SheepShaver keeps its settings elsewhere:
+BASILISK_PREFS=~/.sheepshaver_prefs python3 netmode.py slirp
 ```
 
 A mode change has two halves — this only does the host one. The guest's TCP/IP
