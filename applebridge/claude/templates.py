@@ -6,9 +6,8 @@ All HTML templates for the Claude Interface.
 Compatible with HTML 3.2 (no CSS, no JavaScript).
 """
 
-import html
 import time
-from applebridge.encoding import sanitize, format_for_netscape
+from applebridge.encoding import sanitize, format_for_netscape, escape_html
 from applebridge.claude.files import list_shared_files, read_shared_file
 from applebridge.claude.history import get_all_history, get_all_chat_history
 from applebridge.config import CONFIG
@@ -38,13 +37,13 @@ def html_page(title, body, back=True, refresh_url=None, refresh_sec=None):
         refresh_tag = f'<META HTTP-EQUIV="Refresh" CONTENT="{refresh_sec};URL={refresh_url}">'
     return f"""\
 <HTML>
-<HEAD><TITLE>{title} - Claude Bridge</TITLE>
+<HEAD><TITLE>{title} - ClaudeBridge</TITLE>
 {refresh_tag}
 </HEAD>
 <BODY BGCOLOR="#EEEEEE" TEXT="#000000" LINK="#0000CC" VLINK="#660099">
 <TABLE WIDTH="100%" BGCOLOR="#333366" CELLPADDING="8" CELLSPACING="0">
 <TR><TD><FONT SIZE="+2" COLOR="#FFFFFF"><B>{title}</B></FONT></TD>
-<TD ALIGN="RIGHT"><FONT SIZE="-1" COLOR="#CCCCCC">Claude Bridge 2.0</FONT></TD></TR>
+<TD ALIGN="RIGHT"><FONT SIZE="-1" COLOR="#CCCCCC">ClaudeBridge 2.0</FONT></TD></TR>
 </TABLE>
 {nav}
 {body}
@@ -54,7 +53,7 @@ def html_page(title, body, back=True, refresh_url=None, refresh_sec=None):
 
 def page_index():
     """Home page."""
-    return html_page("Claude Bridge for Classic Mac", """
+    return html_page("ClaudeBridge for Classic Mac", """
 <BR>
 <CENTER>
 <TABLE WIDTH="80%" CELLPADDING="12" CELLSPACING="4">
@@ -128,8 +127,8 @@ def page_code():
 def page_code_result(question, answer, job_id=None):
     """Code Assistant result page."""
     formatted_answer = format_for_netscape(sanitize(answer))
-    q_escaped = html.escape(sanitize(question))
-    save_val = html.escape(sanitize(answer), quote=True)
+    q_escaped = escape_html(sanitize(question))
+    save_val = escape_html(sanitize(answer), quote=True)
     text_link = f'<A HREF="/text/{job_id}"><B>[ Plain Text - for copying ]</B></A>' if job_id else ""
     return html_page("Code Assistant -- Result", f"""
 <P><B>Your question:</B></P>
@@ -172,7 +171,7 @@ def page_rez():
 def page_rez_result(question, answer, job_id=None):
     """Resource Generator result page."""
     formatted_answer = format_for_netscape(sanitize(answer))
-    save_val = html.escape(sanitize(answer), quote=True)
+    save_val = escape_html(sanitize(answer), quote=True)
     text_link = f'<A HREF="/text/{job_id}"><B>[ Plain Text - for copying ]</B></A>' if job_id else ""
     shared_folder = CONFIG["files"]["shared_folder"]
     save_section = ""
@@ -187,7 +186,7 @@ def page_rez_result(question, answer, job_id=None):
 </FORM>"""
     return html_page("Resource Generator -- Result", f"""
 <P><B>Your description:</B></P>
-<BLOCKQUOTE>{html.escape(sanitize(question))}</BLOCKQUOTE>
+<BLOCKQUOTE>{escape_html(sanitize(question))}</BLOCKQUOTE>
 <HR>
 <P><B>Rez source code:</B> {text_link}</P>
 {formatted_answer}
@@ -216,7 +215,7 @@ def page_ask_result(question, answer, job_id=None):
     text_link = f'<A HREF="/text/{job_id}"><B>[ Plain Text - for copying ]</B></A>' if job_id else ""
     return html_page("Ask &amp; Answer -- Result", f"""
 <P><B>Your question:</B></P>
-<BLOCKQUOTE>{html.escape(sanitize(question))}</BLOCKQUOTE>
+<BLOCKQUOTE>{escape_html(sanitize(question))}</BLOCKQUOTE>
 <HR>
 <P><B>Answer:</B> {text_link}</P>
 {formatted_answer}
@@ -243,11 +242,11 @@ def page_files(subfolder=""):
             name = f["name"]
             if f["is_dir"]:
                 sub = subfolder + "/" + name if subfolder else name
-                link = f'<A HREF="/files?sub={html.escape(sub)}">{html.escape(name)}/</A>'
+                link = f'<A HREF="/files?sub={escape_html(sub)}">{escape_html(name)}/</A>'
                 size = "[Folder]"
             else:
                 sub = subfolder + "/" + name if subfolder else name
-                link = f'<A HREF="/readfile?name={html.escape(sub)}">{html.escape(name)}</A>'
+                link = f'<A HREF="/readfile?name={escape_html(sub)}">{escape_html(name)}</A>'
                 size = f'{f["size"]:,} Bytes'
             rows += f"<TR><TD>{link}</TD><TD ALIGN='RIGHT'>{size}</TD></TR>\n"
         content = f"""
@@ -256,8 +255,8 @@ def page_files(subfolder=""):
 {rows}
 </TABLE>"""
     return html_page("Shared Folder", f"""
-<P><B>Path:</B> <CODE>{html.escape(shared_folder or '(not set)')}</CODE>
-{(' / ' + html.escape(subfolder)) if subfolder else ''}</P>
+<P><B>Path:</B> <CODE>{escape_html(shared_folder or '(not set)')}</CODE>
+{(' / ' + escape_html(subfolder)) if subfolder else ''}</P>
 {content}
 """)
 
@@ -267,9 +266,9 @@ def page_readfile(filename):
     content = read_shared_file(filename)
     if content is None:
         return html_page("File not found",
-            f"<P>File <CODE>{html.escape(filename)}</CODE> not found.</P>")
-    escaped = html.escape(sanitize(content))
-    content_val = html.escape(sanitize(content), quote=True)
+            f"<P>File <CODE>{escape_html(filename)}</CODE> not found.</P>")
+    escaped = escape_html(sanitize(content))
+    content_val = escape_html(sanitize(content), quote=True)
     return html_page(f"File: {filename}", f"""
 <PRE>{escaped}</PRE>
 <HR>
@@ -285,7 +284,7 @@ def page_readfile(filename):
 def page_save_result(filename, success):
     """Result page after saving a file."""
     if success:
-        msg = f'<P>File <CODE>{html.escape(filename)}</CODE> saved.</P>'
+        msg = f'<P>File <CODE>{escape_html(filename)}</CODE> saved.</P>'
         msg += '<P><A HREF="/files">Go to Shared Folder</A></P>'
     else:
         msg = '<P><B>Error:</B> File could not be saved.</P>'
@@ -316,8 +315,8 @@ def page_history():
                 rows += f"""
 <TR BGCOLOR="#FFFFFF">
 <TD VALIGN="TOP"><FONT SIZE="-1">{entry['time']}<BR><B>{entry['mode']}</B></FONT></TD>
-<TD VALIGN="TOP"><A HREF="/history/{entry_id}">{html.escape(sanitize(q_preview))}</A></TD>
-<TD VALIGN="TOP"><FONT SIZE="-1">{html.escape(sanitize(a_preview))}</FONT></TD>
+<TD VALIGN="TOP"><A HREF="/history/{entry_id}">{escape_html(sanitize(q_preview))}</A></TD>
+<TD VALIGN="TOP"><FONT SIZE="-1">{escape_html(sanitize(a_preview))}</FONT></TD>
 </TR>"""
             code_section = f"""
 <P><B>Code / Rez / Ask History:</B></P>
@@ -342,8 +341,8 @@ def page_history():
                 chat_rows += f"""
 <TR BGCOLOR="#FFFFF0">
 <TD VALIGN="TOP"><FONT SIZE="-1">{entry['time']}</FONT></TD>
-<TD VALIGN="TOP"><A HREF="/history/chat/{entry_id}">{html.escape(sanitize(q_preview))}</A></TD>
-<TD VALIGN="TOP"><FONT SIZE="-1">{html.escape(sanitize(a_preview))}</FONT></TD>
+<TD VALIGN="TOP"><A HREF="/history/chat/{entry_id}">{escape_html(sanitize(q_preview))}</A></TD>
+<TD VALIGN="TOP"><FONT SIZE="-1">{escape_html(sanitize(a_preview))}</FONT></TD>
 </TR>"""
             chat_section = f"""
 <P><B>Chat History:</B></P>
@@ -369,7 +368,7 @@ def page_history_detail(entry_id):
 <P><B>Mode:</B> {entry['mode']} &nbsp;&nbsp; <B>Time:</B> {entry['time']}</P>
 <HR>
 <P><B>Question:</B></P>
-<BLOCKQUOTE>{html.escape(sanitize(entry['question']))}</BLOCKQUOTE>
+<BLOCKQUOTE>{escape_html(sanitize(entry['question']))}</BLOCKQUOTE>
 <HR>
 <P><B>Answer:</B></P>
 {formatted_answer}
@@ -391,7 +390,7 @@ def page_chat_history_detail(entry_id):
 <P><B>Time:</B> {entry['time']}</P>
 <HR>
 <P><B>You:</B></P>
-<BLOCKQUOTE>{html.escape(sanitize(entry['question']))}</BLOCKQUOTE>
+<BLOCKQUOTE>{escape_html(sanitize(entry['question']))}</BLOCKQUOTE>
 <HR>
 <P><B>Claude:</B></P>
 {formatted_answer}
@@ -418,7 +417,7 @@ def page_chat():
 <TABLE WIDTH="100%" BGCOLOR="#FFFFEE" CELLPADDING="8" CELLSPACING="0" BORDER="1">
 <TR><TD>
 <P><B>You ({entry['time']}):</B></P>
-<P>{html.escape(sanitize(entry['question']))}</P>
+<P>{escape_html(sanitize(entry['question']))}</P>
 </TD></TR>
 </TABLE>
 <TABLE WIDTH="100%" BGCOLOR="#EEFFEE" CELLPADDING="8" CELLSPACING="0" BORDER="1">
@@ -451,7 +450,7 @@ def page_chat_result(question, answer, job_id=None):
     # For question display: truncate if very long (avoid showing entire code blocks)
     # Show only first 200 chars to remind user what they asked
     question_preview = question[:200] + "..." if len(question) > 200 else question
-    q_escaped = html.escape(sanitize(question_preview))
+    q_escaped = escape_html(sanitize(question_preview))
 
     text_link = f'<A HREF="/text/{job_id}"><B>[ Plain Text - for copying ]</B></A>' if job_id else ""
 

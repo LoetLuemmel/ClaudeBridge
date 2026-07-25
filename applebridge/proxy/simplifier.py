@@ -5,13 +5,12 @@ HTML Simplifier and Proxy Templates
 Converts modern HTML to HTML 3.2 compatible markup for Netscape Navigator 3.
 """
 
-import html
 import logging
 import re
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
-from applebridge.encoding import sanitize
+from applebridge.encoding import sanitize, escape_html
 from applebridge.proxy.cache import get_cache_stats
 
 
@@ -195,13 +194,13 @@ def html_page(title, body, back=True, refresh_url=None, refresh_sec=None):
         refresh_tag = f'<META HTTP-EQUIV="Refresh" CONTENT="{refresh_sec};URL={refresh_url}">'
     return f"""\
 <HTML>
-<HEAD><TITLE>{title} - Claude Bridge</TITLE>
+<HEAD><TITLE>{title} - ClaudeBridge</TITLE>
 {refresh_tag}
 </HEAD>
 <BODY BGCOLOR="#EEEEEE" TEXT="#000000" LINK="#0000CC" VLINK="#660099">
 <TABLE WIDTH="100%" BGCOLOR="#333366" CELLPADDING="8" CELLSPACING="0">
 <TR><TD><FONT SIZE="+2" COLOR="#FFFFFF"><B>{title}</B></FONT></TD>
-<TD ALIGN="RIGHT"><FONT SIZE="-1" COLOR="#CCCCCC">Claude Bridge 2.0</FONT></TD></TR>
+<TD ALIGN="RIGHT"><FONT SIZE="-1" COLOR="#CCCCCC">ClaudeBridge 2.0</FONT></TD></TR>
 </TABLE>
 {nav}
 {body}
@@ -244,7 +243,7 @@ def page_proxy_result(url, html_content, base_url):
     """Display proxied page content."""
     simplified = simplify_html_for_netscape(html_content, base_url)
     return f"""<HTML>
-<HEAD><TITLE>Proxy: {html.escape(url)}</TITLE></HEAD>
+<HEAD><TITLE>Proxy: {escape_html(url)}</TITLE></HEAD>
 <BODY BGCOLOR="#EEEEEE" TEXT="#000000" LINK="#0000CC" VLINK="#660099">
 <TABLE WIDTH="100%" BGCOLOR="#333366" CELLPADDING="8" CELLSPACING="0">
 <TR><TD><FONT SIZE="+1" COLOR="#FFFFFF"><B>Web Proxy</B></FONT></TD>
@@ -257,7 +256,7 @@ def page_proxy_result(url, html_content, base_url):
 </FONT></TD></TR>
 </TABLE>
 <TABLE WIDTH="100%" BGCOLOR="#FFFFCC" CELLPADDING="4" CELLSPACING="0">
-<TR><TD><FONT SIZE="-1"><B>URL:</B> {html.escape(url)}</FONT></TD></TR>
+<TR><TD><FONT SIZE="-1"><B>URL:</B> {escape_html(url)}</FONT></TD></TR>
 </TABLE>
 {simplified}
 </BODY>
@@ -268,8 +267,8 @@ def page_proxy_error(url, error):
     """Display proxy error page."""
     return html_page("Web Proxy - Error", f"""
 <P><B>Error loading URL:</B></P>
-<BLOCKQUOTE><CODE>{html.escape(url)}</CODE></BLOCKQUOTE>
+<BLOCKQUOTE><CODE>{escape_html(url)}</CODE></BLOCKQUOTE>
 <P><B>Error message:</B></P>
-<PRE>{html.escape(error)}</PRE>
+<PRE>{escape_html(error)}</PRE>
 <P><A HREF="/web">Back to Web Proxy</A></P>
 """)

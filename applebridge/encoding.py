@@ -14,9 +14,30 @@ Functions:
 - strip_markdown(): Strip markdown/HTML for plain text export
 """
 
-import html
 import unicodedata
 import re
+
+
+def escape_html(text, quote=False):
+    """Escape HTML special characters for Netscape Navigator 3.
+
+    Replaces html.escape(), which is NOT usable here: it emits hexadecimal
+    character references (' -> &#x27;, introduced in HTML 4.0). Netscape 3
+    only understands HTML 3.2 and renders those literally, so an answer came
+    out as "I&#x27;m doing wonderfully" on screen.
+
+    Only &, < and > are escaped. Apostrophes are left alone - all attributes
+    in the templates are delimited with double quotes, so ' is harmless there
+    and needs no reference at all.
+
+    Args:
+        text: Text to escape
+        quote: If True, also escape " as &quot; (for attribute values)
+    """
+    text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+    if quote:
+        text = text.replace('"', '&quot;')
+    return text
 
 
 def sanitize(text):
@@ -186,11 +207,11 @@ def format_for_netscape(text):
                     code_lines.append(line[:72])
                     line = '  ' + line[72:]  # Indent continuation
                 code_lines.append(line)
-            result.append(f'<PRE>{html.escape("\n".join(code_lines))}</PRE>')
+            result.append(f'<PRE>{escape_html("\n".join(code_lines))}</PRE>')
         else:
             # For normal text, escape FIRST, then add <BR> tags
             # This prevents the <BR> tags from being escaped
-            para = html.escape(para)
+            para = escape_html(para)
             para = para.replace('\n', '<BR>\n')
             result.append(f'<P>{para}</P>')
 
