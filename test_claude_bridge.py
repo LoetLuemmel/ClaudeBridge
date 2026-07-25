@@ -24,7 +24,7 @@ import os
 # Add parent directory to path so the applebridge package is importable
 sys.path.insert(0, os.path.dirname(__file__))
 
-from applebridge.config import CONFIG
+from applebridge.config import CONFIG, check_bind_host
 from applebridge.encoding import sanitize, escape_html
 from applebridge.claude.files import (
     validate_safe_path,
@@ -214,6 +214,35 @@ class TestSSRFProtection(unittest.TestCase):
                 req, None, 302, "Found", email.message.Message(),
                 "http://127.0.0.1:9001/"
             )
+
+
+class TestSlirpOnlyBinding(unittest.TestCase):
+    """ClaudeBridge 2.0 is slirp-only and must refuse a non-loopback bind.
+
+    Binding a LAN address only helps in bridge mode, and bridge mode requires
+    the macOS firewall to be switched off entirely - the trade this version
+    exists to avoid.
+    """
+
+    def test_loopback_accepted(self):
+        for host in ("127.0.0.1", "localhost", "::1", "127.0.1.5"):
+            self.assertIsNone(check_bind_host(host), f"should accept {host}")
+
+    def test_wildcard_refused(self):
+        self.assertIsNotNone(check_bind_host("0.0.0.0"))
+
+    def test_lan_address_refused(self):
+        self.assertIsNotNone(check_bind_host("192.168.3.154"))
+
+    def test_slirp_gateway_refused(self):
+        """10.0.2.2 is the guest's view of the host, not a bindable address."""
+        self.assertIsNotNone(check_bind_host("10.0.2.2"))
+
+    def test_refusal_explains_the_alternative(self):
+        """The message has to say where to go, not just what is forbidden."""
+        message = check_bind_host("0.0.0.0")
+        self.assertIn("AppleBridge", message)
+        self.assertIn("slirp", message)
 
 
 class TestFilenameValidation(unittest.TestCase):

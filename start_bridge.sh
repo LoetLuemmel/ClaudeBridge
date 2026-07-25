@@ -1,33 +1,46 @@
 #!/bin/bash
-# start_bridge.sh - Claude Bridge mit automatischer Firewall-Verwaltung
-# Verwendung: sudo ./start_bridge.sh
+# start_bridge.sh - Start ClaudeBridge 2.0
+#
+# ClaudeBridge 2.0 is slirp-only. The emulator sits behind a NAT inside this
+# host and reaches the server at 10.0.2.2:8080, which arrives on loopback -
+# so the server binds 127.0.0.1 and the macOS firewall STAYS ON.
+#
+# The previous version of this script did the opposite: it bound a LAN address
+# and ran `socketfilterfw --setglobalstate off`, because back then the emulator
+# was bridged onto the WLAN and the firewall blocked the port. That trade is
+# exactly what this version exists to avoid, so none of it happens any more.
+# For a guest that has to be reachable on the LAN, use AppleBridge.
+
+set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PYTHON="/Library/Frameworks/Python.framework/Versions/3.12/bin/python3"
-SHARED="/Users/pitforster/Desktop/Share"
-HOST="192.168.3.154"
-PORT=8080
+cd "$SCRIPT_DIR"
 
-echo "=== Claude Bridge Starter ==="
+if [ -x .venv/bin/python ]; then
+    PYTHON=".venv/bin/python"
+else
+    PYTHON="python3"
+fi
 
-# Firewall oeffnen
-echo "Firewall wird deaktiviert..."
-/usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate off
+echo "=== ClaudeBridge 2.0 ==="
 
-echo "Starte Claude Bridge Server..."
-echo "Oeffne in Netscape: http://${HOST}:${PORT}/"
-echo "Beende mit Ctrl+C"
-echo ""
+# Warn if the emulator is not in slirp mode - the server would start fine but
+# the guest would have no route to it.
+PREFS="$HOME/.basilisk_ii_prefs"
+if [ -f "$PREFS" ]; then
+    MODE=$(grep '^ether ' "$PREFS" | head -1 | cut -d' ' -f2-)
+    if [ "$MODE" != "slirp" ]; then
+        echo
+        echo "WARNING: Basilisk II is set to '$MODE', not slirp."
+        echo "         The server will start, but the guest will not reach it."
+        echo "         Switch with:  $PYTHON netmode.py slirp"
+        echo
+    fi
+fi
 
-# Server starten (als normaler User, nicht als root)
-sudo -u "$SUDO_USER" "$PYTHON" "$SCRIPT_DIR/claude_bridge.py" \
-    --host "$HOST" \
-    --shared-folder "$SHARED" \
-    --port "$PORT"
+echo "Guest URL: http://10.0.2.2:8080/"
+echo "Host URL : http://127.0.0.1:8080/"
+echo "Stop with Ctrl+C"
+echo
 
-# Firewall wieder aktivieren wenn Server beendet wird
-echo ""
-echo "Firewall wird wieder aktiviert..."
-/usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate on
-echo "Firewall ist wieder aktiv. Fertig."
-
+exec "$PYTHON" claude_bridge.py

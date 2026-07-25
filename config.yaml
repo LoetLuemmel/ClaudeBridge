@@ -3,10 +3,12 @@
 
 # Server Settings
 server:
-  # Loopback only - passt zum slirp-Modus (siehe docs/NETWORK_MODES.md).
-  # Der Gast erreicht den Host ueber 10.0.2.2, slirp bildet das auf Loopback
-  # ab; das LAN kommt gar nicht erst an den Port. Firewall kann an bleiben.
-  # Fuer den bridge-Modus muss hier wieder "0.0.0.0" stehen.
+  # FIXED - ClaudeBridge 2.0 is slirp-only and the server refuses to start on
+  # any other address. The guest reaches the host at 10.0.2.2, which arrives on
+  # loopback, so the macOS firewall can stay on and the port is never exposed
+  # to the LAN. Bridge mode would need 0.0.0.0 AND the firewall switched off -
+  # that trade is what this version exists to avoid. For a guest that has to be
+  # reachable on the LAN, use AppleBridge. See docs/NETWORK_MODES.md.
   host: "127.0.0.1"
   port: 8080
 

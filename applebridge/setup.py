@@ -27,8 +27,6 @@ CONFIG_PATH = Path(__file__).parent.parent / "config.yaml"
 
 # Fields the page may write: (section, key, label, kind, hint)
 EDITABLE = [
-    ("server", "host", "Bind address", "text",
-     "127.0.0.1 for slirp mode, 0.0.0.0 for bridge mode"),
     ("server", "port", "Port", "int", "default 8080"),
     ("claude", "model", "Claude model", "text", ""),
     ("claude", "max_tokens", "Max tokens", "int", ""),
@@ -229,6 +227,15 @@ directly. The network mode is switched with <CODE>netmode.py</CODE> on the host.
 </TABLE>
 <P><B>&gt;&gt;</B> <INPUT TYPE="SUBMIT" VALUE=" Save "> <B>&lt;&lt;</B></P>
 </FORM>
+
+<HR>
+<P><B>Bind address:</B> <CODE>{escape_html(str(CONFIG["server"]["host"]))}</CODE> -- fixed.</P>
+<P><FONT SIZE="-1">ClaudeBridge 2.0 is slirp-only and binds loopback. The guest
+reaches the host at 10.0.2.2, which arrives on loopback, so the macOS firewall
+can stay on and the port is never exposed to the LAN. Binding anything else
+would only help in bridge mode, which requires the firewall to be switched off
+-- the very trade this version avoids. The server refuses to start on a
+non-loopback address. For a guest on the LAN, use AppleBridge.</FONT></P>
 
 <HR>
 <P><B>Network mode:</B> {mode_text}</P>

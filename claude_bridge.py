@@ -23,7 +23,8 @@ import logging
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
-from applebridge.config import load_config, setup_logging, load_api_key, CONFIG
+from applebridge.config import (load_config, setup_logging, load_api_key,
+                                check_bind_host, CONFIG)
 from applebridge.claude.server import ClaudeHandler
 from applebridge.claude.history import load_history
 from applebridge.proxy.server import ProxyHandler
@@ -103,6 +104,12 @@ def main():
     parser.add_argument("--host", default=CONFIG["server"]["host"],
                         help="Host to bind to (default: 0.0.0.0)")
     args = parser.parse_args()
+
+    # slirp-only: refuse any non-loopback bind before opening the socket
+    problem = check_bind_host(args.host)
+    if problem:
+        logging.error(problem)
+        raise SystemExit(2)
 
     # Start server
     logging.info(f"Starting Claude Bridge Server 2.0 on {args.host}:{args.port}")

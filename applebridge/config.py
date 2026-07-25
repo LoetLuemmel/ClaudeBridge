@@ -47,6 +47,37 @@ def load_config(config_file="config.yaml"):
         logging.info("No config.yaml found, using defaults")
 
 
+LOOPBACK_HOSTS = ("127.0.0.1", "::1", "localhost")
+
+
+def check_bind_host(host):
+    """ClaudeBridge is slirp-only: the server must bind loopback.
+
+    In slirp mode the guest reaches the host at 10.0.2.2, which arrives on the
+    loopback interface - so loopback is sufficient, the firewall can stay on,
+    and the port is never exposed to the LAN.
+
+    Binding anywhere else only makes sense in bridge mode, and bridge mode
+    requires the macOS firewall to be switched off entirely. That trade is what
+    this version exists to avoid, so it is refused rather than warned about.
+
+    Returns None if the host is acceptable, otherwise an error message.
+    """
+    if host in LOOPBACK_HOSTS or host.startswith("127."):
+        return None
+    return (
+        f"Refusing to bind {host}.\n\n"
+        "ClaudeBridge 2.0 is slirp-only. In slirp mode the guest reaches the\n"
+        "host at 10.0.2.2, which arrives on loopback, so binding 127.0.0.1 is\n"
+        "enough and the macOS firewall can stay on.\n\n"
+        f"Binding {host} would only help in bridge mode, where the emulator is\n"
+        "its own host on the LAN - and that requires the firewall to be off,\n"
+        "which exposes every listening service on this machine.\n\n"
+        "If you need the guest on the LAN, that is what AppleBridge is for.\n"
+        "Otherwise switch the emulator with:  uv run python netmode.py slirp"
+    )
+
+
 def setup_logging():
     """Setup logging based on configuration."""
     log_level = getattr(logging, CONFIG["logging"]["level"], logging.INFO)

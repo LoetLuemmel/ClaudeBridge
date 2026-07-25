@@ -140,12 +140,15 @@ def switch(target, restart):
 
     print()
     if new == "slirp":
-        print("Naechster Schritt: der Gast erreicht den Host ueber 10.0.2.2.")
-        print("Wenn das steht, kann der Server auf Loopback binden")
-        print("(config.yaml -> server.host: 127.0.0.1) und die Firewall an bleiben.")
+        print("Naechster Schritt: TCP/IP im Gast auf 'Using DHCP Server' stellen.")
+        print("Der Gast erreicht den Host dann ueber 10.0.2.2:8080.")
     else:
-        print("Naechster Schritt: Server braucht wieder server.host: 0.0.0.0")
-        print("und die Firewall muss offen sein, sonst kommt Netscape nicht durch.")
+        print("ACHTUNG: ClaudeBridge 2.0 ist slirp-only und wird im bridge-Modus")
+        print("         NICHT mehr erreichbar sein - der Server bindet Loopback")
+        print("         und weigert sich, auf 0.0.0.0 zu starten.")
+        print()
+        print("Der bridge-Modus ist fuer AppleBridge gedacht. Im Gast ausserdem")
+        print("TCP/IP zurueck auf 'Manually' mit der festen Adresse stellen.")
 
 
 def show():
