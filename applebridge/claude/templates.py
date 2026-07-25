@@ -28,7 +28,8 @@ def html_page(title, body, back=True, refresh_url=None, refresh_sec=None):
 <A HREF="/ask">Ask</A> |
 <A HREF="/web">Web</A> |
 <A HREF="/files">Files</A> |
-<A HREF="/history">History</A>
+<A HREF="/history">History</A> |
+<A HREF="/setup">Setup</A>
 </FONT></TD>
 </TR>
 </TABLE>"""

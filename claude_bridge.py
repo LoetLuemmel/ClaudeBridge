@@ -21,12 +21,13 @@ Usage:
 import argparse
 import logging
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 
 from applebridge.config import load_config, setup_logging, load_api_key, CONFIG
 from applebridge.claude.server import ClaudeHandler
 from applebridge.claude.history import load_history
 from applebridge.proxy.server import ProxyHandler
+from applebridge.setup import SetupHandler
 
 
 class UnifiedHandler(BaseHTTPRequestHandler):
@@ -36,6 +37,7 @@ class UnifiedHandler(BaseHTTPRequestHandler):
         # Initialize handlers
         self.claude = ClaudeHandler()
         self.proxy = ProxyHandler()
+        self.setup_page = SetupHandler()
         super().__init__(*args, **kwargs)
 
     def handle(self):
@@ -53,18 +55,31 @@ class UnifiedHandler(BaseHTTPRequestHandler):
         # Route to Proxy for /web, /proxy, /proxyimg
         if path in ['/web', '/proxy', '/proxyimg']:
             self.proxy.handle_get(self)
+        # Host configuration - loopback only, see applebridge/setup.py
+        elif path == '/setup':
+            self.setup_page.handle_get(self)
         # All other paths go to Claude Interface
         else:
             self.claude.handle_get(self)
 
     def do_POST(self):
-        """Route POST requests to Claude Interface."""
-        # All POST requests go to Claude Interface
-        self.claude.handle_post(self)
+        """Route POST requests."""
+        path = urlparse(self.path).path
+        if path == '/setup/save':
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length).decode("iso-8859-1", errors="replace")
+            self.setup_page.handle_post(self, parse_qs(body, encoding="iso-8859-1"))
+        else:
+            self.claude.handle_post(self)
 
     def log_message(self, format, *args):
-        """Log HTTP requests using configured logging."""
-        logging.info(f"{args[0]}")
+        """Log HTTP requests using configured logging.
+
+        The client address is included because it decides whether /setup is
+        served, and because it is the only way to tell a loopback request
+        (slirp) from a LAN one (bridge) after the fact.
+        """
+        logging.info(f"{self.client_address[0]} {args[0]}")
 
 
 def main():

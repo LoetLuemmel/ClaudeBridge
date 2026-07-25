@@ -20,6 +20,7 @@ CONFIG = {
     "files": {"shared_folder": None},
     "history": {"max_entries": 20},
     "proxy": {"block_private_networks": True},
+    "setup": {"enabled": True, "require_loopback": True},
     "logging": {"level": "INFO", "file": "claude_bridge.log", "console": True}
 }
 

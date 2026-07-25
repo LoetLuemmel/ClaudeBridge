@@ -38,6 +38,15 @@ proxy:
   # deliberately want to proxy something inside your own network.
   block_private_networks: true
 
+# Setup Page (/setup)
+setup:
+  enabled: true          # false disables /setup entirely
+  # Only serve /setup to clients on the loopback interface. In slirp mode the
+  # guest reaches the host through loopback, so the page works; in bridge mode
+  # the guest is a real LAN host and is refused. Turning this off exposes
+  # server configuration to everyone who can reach the port.
+  require_loopback: true
+
 # Logging
 logging:
   level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
