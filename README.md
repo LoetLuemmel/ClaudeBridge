@@ -25,7 +25,7 @@ cd ClaudeBridge
 python3 -m pip install -r requirements.txt   # or: uv pip install -r requirements.txt
 
 mkdir -p ~/.config/anthropic
-echo 'sk-ant-...' > ~/.config/anthropic/api_key
+pbpaste > ~/.config/anthropic/api_key     # key on the clipboard, never on screen
 chmod 600 ~/.config/anthropic/api_key
 
 ./start_bridge.sh                      # or: python3 claude_bridge.py
@@ -154,6 +154,10 @@ control panel has to follow. See [`docs/NETWORK_MODES.md`](docs/NETWORK_MODES.md
 
 The API key is **not** in `config.yaml` — that file is version-controlled. It is
 read from `ANTHROPIC_API_KEY`, then `~/.config/anthropic/api_key`, then `.env`.
+
+Write it with `pbpaste`, not with `echo 'sk-ant-…' > file`. The `echo` form puts
+the key on screen, into the scrollback and into `~/.zsh_history`, where it
+stays.
 
 ---
 
