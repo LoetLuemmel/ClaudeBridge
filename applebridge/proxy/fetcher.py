@@ -8,6 +8,8 @@ Fetches HTTPS pages for the web proxy.
 import urllib.request
 import urllib.error
 
+from applebridge.proxy.ssrf import check_url, build_opener
+
 
 def fetch_https_page(url):
     """Fetch a page via HTTPS and return content + final URL.
@@ -21,13 +23,18 @@ def fetch_https_page(url):
         - final_url: Final URL after redirects
         - error: Error message (or None on success)
     """
+    # Reject local/private targets before opening any connection
+    blocked = check_url(url)
+    if blocked:
+        return None, url, blocked
+
     try:
         # Add a User-Agent to avoid being blocked by some sites
         headers = {
             'User-Agent': 'Mozilla/5.0 (Macintosh; U; PPC Mac OS 7.5; en-US) Netscape/3.04'
         }
         req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req, timeout=30) as response:
+        with build_opener().open(req, timeout=30) as response:
             content = response.read()
             final_url = response.geturl()
             content_type = response.headers.get('Content-Type', '')

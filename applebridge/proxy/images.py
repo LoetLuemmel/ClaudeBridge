@@ -14,6 +14,7 @@ from io import BytesIO
 
 from applebridge.proxy.cache import get_cached_image, cache_image
 from applebridge.proxy.ratelimit import wait_for_rate_limit
+from applebridge.proxy.ssrf import check_url, build_opener
 
 
 def fetch_image(url, max_width=500, max_size_kb=50):
@@ -34,6 +35,11 @@ def fetch_image(url, max_width=500, max_size_kb=50):
     Returns:
         Tuple of (image_data, content_type, error)
     """
+    # Reject local/private targets before touching the cache or the network
+    blocked = check_url(url)
+    if blocked:
+        return None, None, blocked
+
     # Check cache first
     cached = get_cached_image(url)
     if cached:
@@ -47,7 +53,7 @@ def fetch_image(url, max_width=500, max_size_kb=50):
             'User-Agent': 'Mozilla/5.0 (Macintosh; U; PPC Mac OS 7.5; en-US) Netscape/3.04'
         }
         req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req, timeout=30) as response:
+        with build_opener().open(req, timeout=30) as response:
             original_content = response.read()
             original_type = response.headers.get('Content-Type', 'image/jpeg')
             original_size_kb = len(original_content) / 1024
@@ -153,7 +159,7 @@ def fetch_image(url, max_width=500, max_size_kb=50):
                     'User-Agent': 'Mozilla/5.0 (Macintosh; U; PPC Mac OS 7.5; en-US) Netscape/3.04'
                 }
                 req = urllib.request.Request(url, headers=headers)
-                with urllib.request.urlopen(req, timeout=30) as response:
+                with build_opener().open(req, timeout=30) as response:
                     content = response.read()
                     content_type = response.headers.get('Content-Type', 'image/jpeg')
                     # Cache the retry result

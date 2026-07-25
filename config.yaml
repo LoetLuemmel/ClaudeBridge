@@ -3,7 +3,11 @@
 
 # Server Settings
 server:
-  host: "0.0.0.0"
+  # Loopback only - passt zum slirp-Modus (siehe docs/NETWORK_MODES.md).
+  # Der Gast erreicht den Host ueber 10.0.2.2, slirp bildet das auf Loopback
+  # ab; das LAN kommt gar nicht erst an den Port. Firewall kann an bleiben.
+  # Fuer den bridge-Modus muss hier wieder "0.0.0.0" stehen.
+  host: "127.0.0.1"
   port: 8080
 
 # Claude API Settings
@@ -25,6 +29,14 @@ files:
 # History
 history:
   max_entries: 20  # max conversation history entries
+
+# Web Proxy
+proxy:
+  # Block /proxy and /proxyimg from reaching the local machine or private
+  # networks (127.0.0.1, 10/8, 192.168/16, 169.254/16, ...). Without this the
+  # proxy is an open relay for anyone on the LAN. Only turn off if you
+  # deliberately want to proxy something inside your own network.
+  block_private_networks: true
 
 # Logging
 logging:

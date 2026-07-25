@@ -19,6 +19,7 @@ CONFIG = {
     "jobs": {"timeout": 180, "max_history": 10, "refresh_interval": 3},
     "files": {"shared_folder": None},
     "history": {"max_entries": 20},
+    "proxy": {"block_private_networks": True},
     "logging": {"level": "INFO", "file": "claude_bridge.log", "console": True}
 }
 
