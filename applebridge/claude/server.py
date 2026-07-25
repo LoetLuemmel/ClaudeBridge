@@ -150,7 +150,11 @@ class ClaudeHandler:
         """Handle POST requests for Claude Interface."""
         content_length = int(handler.headers.get("Content-Length", 0))
         body = handler.rfile.read(content_length).decode("iso-8859-1", errors="replace")
-        params = parse_qs(body)
+        # Percent-sequences carry MacRoman, not UTF-8: Netscape 3 hands the
+        # Script Manager's bytes through unchanged, so 'ä' arrives as %8A.
+        # parse_qs defaults to UTF-8, where 0x8A is invalid - it became U+FFFD
+        # and sanitize() then turned every umlaut into '?'.
+        params = parse_qs(body, encoding="mac_roman")
         path = urlparse(handler.path).path
 
         api_key = os.environ.get("ANTHROPIC_API_KEY", "")
