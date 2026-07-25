@@ -207,7 +207,11 @@ def format_for_netscape(text):
                     code_lines.append(line[:72])
                     line = '  ' + line[72:]  # Indent continuation
                 code_lines.append(line)
-            result.append(f'<PRE>{escape_html("\n".join(code_lines))}</PRE>')
+            # The join is done outside the f-string on purpose: before Python
+            # 3.12, an f-string expression may not contain a backslash, and
+            # "\n" inside the braces is a SyntaxError at import time on 3.11.
+            code_block = "\n".join(code_lines)
+            result.append(f'<PRE>{escape_html(code_block)}</PRE>')
         else:
             # For normal text, escape FIRST, then add <BR> tags
             # This prevents the <BR> tags from being escaped
